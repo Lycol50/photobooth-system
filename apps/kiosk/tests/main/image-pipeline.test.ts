@@ -1,0 +1,276 @@
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+
+import sharp from 'sharp';
+import { beforeAll, describe, expect, it } from 'vitest';
+
+import {
+  CenterCropStrategy,
+  FaceAwareWithCenterFallback,
+  MediaPipeCropStrategy,
+} from '../../src/main/image/crop-strategy.js';
+import { ImagePipeline } from '../../src/main/image/image-pipeline.js';
+import { DEFAULT_FRAME_SLOTS } from '../../src/main/frame/frame-service.js';
+
+let fixturePhotos: [Buffer, Buffer, Buffer, Buffer];
+let fixtureFrame: Buffer;
+
+beforeAll(async () => {
+  const root = fileURLToPath(new URL('../../resources/', import.meta.url));
+  fixturePhotos = (await Promise.all(
+    [1, 2, 3, 4].map((index) => readFile(`${root}mock/photo-${index}.jpg`)),
+  )) as [Buffer, Buffer, Buffer, Buffer];
+  fixtureFrame = await readFile(`${root}frames/default-frame.png`);
+});
+
+describe('deterministic Sharp collage pipeline', () => {
+  it('matches the fixture golden within the documented pixel tolerance', async () => {
+    const pipeline = new ImagePipeline(
+      new FaceAwareWithCenterFallback(new MediaPipeCropStrategy()),
+    );
+    const input = {
+      captures: fixturePhotos,
+      framePng: fixtureFrame,
+      slots: DEFAULT_FRAME_SLOTS,
+      longEdge: 2_700,
+    } as const;
+    const [golden, repeat] = await Promise.all([pipeline.process(input), pipeline.process(input)]);
+    const goldenPixels = await sharp(golden.bytes).removeAlpha().raw().toBuffer();
+    const repeatPixels = await sharp(repeat.bytes).removeAlpha().raw().toBuffer();
+    const comparison = pixelDifference(goldenPixels, repeatPixels);
+    expect(comparison.meanChannelDelta).toBeLessThanOrEqual(1.5);
+    expect(comparison.fractionOverEight).toBeLessThanOrEqual(0.01);
+    expect(golden.height).toBe(2_700);
+    expect(golden.width).toBe(2_160);
+    expect((await sharp(golden.bytes).metadata()).space).toBe('srgb');
+  }, 30_000);
+
+  it('places every capture inside its cutout on the shipped default frame', async () => {
+    const colors = [
+      { r: 235, g: 35, b: 35 },
+      { r: 30, g: 210, b: 70 },
+      { r: 35, g: 70, b: 230 },
+      { r: 235, g: 210, b: 35 },
+    ];
+    const captures = (await Promise.all(
+      colors.map((background) =>
+        sharp({ create: { width: 1_600, height: 1_200, channels: 3, background } })
+          .jpeg({ quality: 100, chromaSubsampling: '4:4:4' })
+          .toBuffer(),
+      ),
+    )) as [Buffer, Buffer, Buffer, Buffer];
+    const result = await new ImagePipeline(new CenterCropStrategy()).process({
+      captures,
+      framePng: fixtureFrame,
+      slots: DEFAULT_FRAME_SLOTS,
+      longEdge: 2_700,
+    });
+
+    for (const slot of DEFAULT_FRAME_SLOTS) {
+      const expected = colors[slot.slotIndex - 1];
+      if (!expected) throw new Error('missing expected colour');
+      const centerX = Math.round((slot.x + slot.width / 2) * result.width);
+      const samples = [
+        { x: centerX, y: Math.round((slot.y + slot.height / 2) * result.height) },
+        { x: centerX, y: Math.round((slot.y + 0.01) * result.height) },
+        { x: centerX, y: Math.round((slot.y + slot.height - 0.01) * result.height) },
+      ];
+      for (const sample of samples) {
+        const pixel = await pixelAt(result.bytes, sample.x, sample.y);
+        expect(Math.abs(pixel.r - expected.r)).toBeLessThanOrEqual(12);
+        expect(Math.abs(pixel.g - expected.g)).toBeLessThanOrEqual(12);
+        expect(Math.abs(pixel.b - expected.b)).toBeLessThanOrEqual(12);
+      }
+    }
+
+    // The card between the two columns stays opaque frame artwork, not guest photo.
+    const gutter = await pixelAt(
+      result.bytes,
+      Math.round(0.5 * result.width),
+      Math.round(0.32 * result.height),
+    );
+    expect(gutter.r).toBeGreaterThan(240);
+    expect(gutter.g).toBeGreaterThan(240);
+    expect(gutter.b).toBeGreaterThan(240);
+  }, 30_000);
+
+  it('uses slotIndex rather than array order when selecting captures', async () => {
+    const colors = [
+      { r: 235, g: 35, b: 35 },
+      { r: 30, g: 210, b: 70 },
+      { r: 35, g: 70, b: 230 },
+      { r: 235, g: 210, b: 35 },
+    ];
+    const captures = (await Promise.all(
+      colors.map((background) =>
+        sharp({ create: { width: 300, height: 200, channels: 3, background } })
+          .jpeg({ quality: 100, chromaSubsampling: '4:4:4' })
+          .toBuffer(),
+      ),
+    )) as [Buffer, Buffer, Buffer, Buffer];
+    const frame = await transparentPng(300, 200);
+    const slots = [...DEFAULT_FRAME_SLOTS].reverse();
+    const result = await new ImagePipeline(new CenterCropStrategy()).process({
+      captures,
+      framePng: frame,
+      slots,
+      longEdge: 2_500,
+    });
+    const topLeft = await pixelAt(
+      result.bytes,
+      Math.round(result.width * 0.25),
+      Math.round(result.height * 0.25),
+    );
+    expect(topLeft.r).toBeGreaterThan(200);
+    expect(topLeft.g).toBeLessThan(80);
+    expect(topLeft.b).toBeLessThan(80);
+  }, 20_000);
+
+  it('keeps fit letterboxing distinct from crop-to-fill', async () => {
+    const wide = await sharp({
+      create: { width: 800, height: 120, channels: 3, background: '#d51f35' },
+    })
+      .jpeg({ quality: 100 })
+      .toBuffer();
+    const frame = await transparentPng(300, 200);
+    const fitSlots = DEFAULT_FRAME_SLOTS.map((slot) =>
+      slot.slotIndex === 1 ? { ...slot, cropMode: 'fit' as const } : slot,
+    );
+    const result = await new ImagePipeline(new CenterCropStrategy()).process({
+      captures: [wide, wide, wide, wide],
+      framePng: frame,
+      slots: fitSlots,
+      longEdge: 2_500,
+    });
+    const letterbox = await pixelAt(
+      result.bytes,
+      Math.round(result.width * 0.25),
+      Math.round(result.height * 0.08),
+    );
+    expect(letterbox.r).toBeGreaterThan(220);
+    expect(letterbox.g).toBeGreaterThan(220);
+    expect(letterbox.b).toBeGreaterThan(215);
+  }, 20_000);
+
+  it('corrects EXIF orientation and falls back to center when MediaPipe is unavailable', async () => {
+    const oriented = await sharp({
+      create: { width: 160, height: 320, channels: 3, background: '#3159b8' },
+    })
+      .jpeg()
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+    const frame = await transparentPng(300, 200);
+    const fallback = new ImagePipeline(
+      new FaceAwareWithCenterFallback(new MediaPipeCropStrategy()),
+    );
+    const center = new ImagePipeline(new CenterCropStrategy());
+    const input = {
+      captures: [oriented, oriented, oriented, oriented],
+      framePng: frame,
+      slots: DEFAULT_FRAME_SLOTS,
+      longEdge: 2_500,
+    } as const;
+    const [fallbackResult, centerResult] = await Promise.all([
+      fallback.process(input),
+      center.process(input),
+    ]);
+    expect(fallbackResult.bytes.equals(centerResult.bytes)).toBe(true);
+  }, 30_000);
+
+  it('rejects corrupt source signatures and fully opaque frame PNGs', async () => {
+    const pipeline = new ImagePipeline(new CenterCropStrategy());
+    await expect(
+      pipeline.process({
+        captures: [Buffer.from('bad'), ...fixturePhotos.slice(1)] as [
+          Buffer,
+          Buffer,
+          Buffer,
+          Buffer,
+        ],
+        framePng: fixtureFrame,
+        slots: DEFAULT_FRAME_SLOTS,
+      }),
+    ).rejects.toThrow(/signature/i);
+    const opaque = await sharp({
+      create: {
+        width: 300,
+        height: 200,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 1 },
+      },
+    })
+      .png()
+      .toBuffer();
+    await expect(
+      pipeline.process({
+        captures: fixturePhotos,
+        framePng: opaque,
+        slots: DEFAULT_FRAME_SLOTS,
+      }),
+    ).rejects.toThrow(/transparent/i);
+  });
+
+  it('uses an injected face result and calls center only when the provider returns null', async () => {
+    let fallbackCalls = 0;
+    const faceAware = new FaceAwareWithCenterFallback(
+      { name: 'injected-face', locateFace: () => Promise.resolve({ x: 0.2, y: 0.3 }) },
+      {
+        name: 'tracked-center',
+        locateFace: () => {
+          fallbackCalls += 1;
+          return Promise.resolve({ x: 0.5, y: 0.5 });
+        },
+      },
+    );
+    await expect(faceAware.locateFace(fixturePhotos[0])).resolves.toEqual({ x: 0.2, y: 0.3 });
+    expect(fallbackCalls).toBe(0);
+
+    const unavailable = new FaceAwareWithCenterFallback({
+      name: 'unavailable',
+      locateFace: () => Promise.resolve(null),
+    });
+    await expect(unavailable.locateFace(fixturePhotos[0])).resolves.toEqual({ x: 0.5, y: 0.5 });
+  });
+});
+
+async function transparentPng(width: number, height: number): Promise<Buffer> {
+  return sharp({
+    create: { width, height, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0.001 } },
+  })
+    .png()
+    .toBuffer();
+}
+
+async function pixelAt(
+  image: Buffer,
+  x: number,
+  y: number,
+): Promise<{ r: number; g: number; b: number }> {
+  const pixel = await sharp(image)
+    .extract({ left: x, top: y, width: 1, height: 1 })
+    .raw()
+    .toBuffer();
+  return { r: pixel[0] ?? 0, g: pixel[1] ?? 0, b: pixel[2] ?? 0 };
+}
+
+function pixelDifference(
+  expected: Buffer,
+  actual: Buffer,
+): { meanChannelDelta: number; fractionOverEight: number } {
+  expect(actual.byteLength).toBe(expected.byteLength);
+  let total = 0;
+  let pixelsOverEight = 0;
+  for (let offset = 0; offset < expected.length; offset += 3) {
+    let pixelOver = false;
+    for (let channel = 0; channel < 3; channel += 1) {
+      const delta = Math.abs((expected[offset + channel] ?? 0) - (actual[offset + channel] ?? 0));
+      total += delta;
+      if (delta > 8) pixelOver = true;
+    }
+    if (pixelOver) pixelsOverEight += 1;
+  }
+  return {
+    meanChannelDelta: total / expected.length,
+    fractionOverEight: pixelsOverEight / (expected.length / 3),
+  };
+}

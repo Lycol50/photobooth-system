@@ -1,0 +1,576 @@
+import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+
+import type {
+  BoothSnapshot,
+  CameraAdapter,
+  CaptureResult,
+  GuestErrorCode,
+  SessionState,
+} from '@grace-booth/shared';
+
+import type { UploadQueue } from '../cloud/upload-queue.js';
+import type { QrService } from '../cloud/qr-service.js';
+import { validateReadyReceipt } from '../cloud/ready-receipt.js';
+import type { LocalRepository, NewAsset, StoredSession } from '../database/repositories.js';
+import { AppError, toSafeError } from '../errors.js';
+import type { FrameService } from '../frame/frame-service.js';
+import type { ImageProcessor } from '../image/image-worker-client.js';
+import type { PhotoVault } from '../storage/photo-vault.js';
+import { reduceSessionState, type SessionEvent } from './session-state-machine.js';
+
+const PHOTO_COUNT = 4;
+const MAX_CAPTURE_BYTES = 50 * 1024 * 1024;
+
+export type BoothWorkflowOptions = {
+  countdownMs: number;
+  cameraPreviewEnabled?: boolean;
+  now?: () => number;
+};
+
+export class BoothWorkflow {
+  private readonly listeners = new Set<(snapshot: BoothSnapshot) => void>();
+  private activeSessionId: string | null = null;
+  private countdownEndsAt: number | null = null;
+  private countdownTimer: NodeJS.Timeout | null = null;
+  private readonly qrBySession = new Map<string, string>();
+  private readonly now: () => number;
+  private closed = false;
+
+  constructor(
+    private readonly repository: LocalRepository,
+    private readonly vault: PhotoVault,
+    private readonly camera: CameraAdapter,
+    private readonly frameService: FrameService,
+    private readonly imageProcessor: ImageProcessor,
+    private readonly uploadQueue: UploadQueue,
+    private readonly qrService: QrService,
+    private readonly options: BoothWorkflowOptions,
+  ) {
+    this.now = options.now ?? Date.now;
+    uploadQueue.on('uploading', (sessionId: string) => this.emitIfActive(sessionId));
+    uploadQueue.on('ready', (sessionId: string) => void this.handleUploadReady(sessionId));
+    uploadQueue.on('failed', (sessionId: string) => this.handleUploadFailed(sessionId));
+    uploadQueue.on('auth-required', (sessionId: string) => this.handleUploadAuthRequired(sessionId));
+    uploadQueue.on('retry', (sessionId: string) => this.emitIfActive(sessionId));
+  }
+
+  async initialize(): Promise<void> {
+    await this.frameService.ensureDefaultFrame();
+    const recovered = this.repository.getLatestIncompleteSession();
+    this.activeSessionId = recovered?.id ?? null;
+    try {
+      await this.camera.connect();
+    } catch {
+      // Warm-up is advisory. Guest Start performs the authoritative connect and recovery transition.
+    }
+    if (recovered?.state === 'ready' || recovered?.state === 'final') {
+      await this.handleUploadReady(recovered.id);
+    } else if (recovered?.state === 'interrupted') {
+      const currentCaptures = this.repository
+        .listCurrentAssets(recovered.id)
+        .filter((asset) => asset.kind === 'capture');
+      const uploadJob = this.repository.getUploadJobForSession(recovered.id);
+      if (recovered.collageAssetId && uploadJob) {
+        this.transition(recovered, 'resume_upload', {}, this.now());
+      } else if (recovered.captureCount === PHOTO_COUNT && currentCaptures.length === PHOTO_COUNT) {
+        this.transition(recovered, 'resume_processing', {}, this.now());
+        void this.processCollage(recovered.id);
+      } else {
+        this.transition(
+          recovered,
+          'reconcile_partial_capture',
+          {
+            lastErrorCode: 'capture_interrupted',
+            lastErrorMessage:
+              'Capture was interrupted. An operator can restart without deleting prior photos.',
+          },
+          this.now(),
+        );
+      }
+    } else if (recovered?.state === 'processing') {
+      void this.processCollage(recovered.id);
+    }
+    this.uploadQueue.start();
+    this.emit();
+  }
+
+  subscribe(listener: (snapshot: BoothSnapshot) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  getSnapshot(): BoothSnapshot {
+    const cameraPreviewEnabled = this.options.cameraPreviewEnabled ?? false;
+    const session = this.activeSessionId ? this.repository.getSession(this.activeSessionId) : null;
+    if (!session || session.state === 'attract') return attractSnapshot(cameraPreviewEnabled);
+    const assets = this.repository.listCurrentAssets(session.id);
+    const captures = assets
+      .filter((asset) => asset.kind === 'capture')
+      .sort((left, right) => (left.shotNumber ?? 0) - (right.shotNumber ?? 0));
+    const collage = session.collageAssetId
+      ? (assets.find((asset) => asset.id === session.collageAssetId) ?? null)
+      : null;
+    const qrImageUrl = this.qrBySession.get(session.id) ?? null;
+    return {
+      screen: screenFor(session.state, qrImageUrl !== null),
+      state: session.state,
+      sessionId: session.id,
+      shotNumber:
+        session.state === 'countdown' || session.state === 'capturing'
+          ? Math.min(PHOTO_COUNT, session.captureCount + 1)
+          : null,
+      captureCount: session.captureCount,
+      countdownEndsAt: session.state === 'countdown' ? this.countdownEndsAt : null,
+      cameraPreviewEnabled,
+      media: {
+        captureUrls: captures.map((asset) => mediaUrl(asset.id)),
+        collageUrl: collage ? mediaUrl(collage.id) : null,
+        qrImageUrl,
+      },
+      controls: {
+        canStart: false,
+        canRetakeAll: session.state === 'review',
+        canAcceptPhotos: session.state === 'review' && session.captureCount === PHOTO_COUNT,
+        canRetryUpload: session.state === 'upload_failed',
+        canFinishOffline:
+          session.state === 'upload_failed' ||
+          (session.state === 'pending_upload' && !!session.collageAssetId),
+        canFinish: session.state === 'final' && qrImageUrl !== null,
+      },
+      errorCode: guestErrorFor(session),
+      message: messageFor(session),
+    };
+  }
+
+  setCameraPreviewEnabled(enabled: boolean): void {
+    this.options.cameraPreviewEnabled = enabled;
+    this.emit();
+  }
+
+  async start(): Promise<BoothSnapshot> {
+    if (this.activeSessionId) {
+      const current = this.repository.getSession(this.activeSessionId);
+      if (current && current.state !== 'attract') {
+        throw new AppError('session_active', 'A photo session is already in progress.');
+      }
+    }
+    const session = this.repository.createSession(randomUUID(), this.now());
+    if (reduceSessionState('attract', 'start') !== session.state) {
+      throw new AppError('state_conflict', 'The new session state is invalid.');
+    }
+    this.activeSessionId = session.id;
+    if (!(await this.connectCameraFor(session))) return this.getSnapshot();
+    this.beginCountdown(session);
+    return this.getSnapshot();
+  }
+
+  retakeAll(): BoothSnapshot {
+    const session = this.requireActive();
+    if (session.state !== 'review')
+      throw new AppError('retake_unavailable', 'Retake is not available now.');
+    this.beginCountdown(this.repository.startRetakeRound(session.id, this.now()));
+    return this.getSnapshot();
+  }
+
+  acceptPhotos(): BoothSnapshot {
+    const session = this.requireActive();
+    if (session.state !== 'review' || session.captureCount !== PHOTO_COUNT) {
+      throw new AppError('review_incomplete', 'Four photos are required before processing.');
+    }
+    this.transition(session, 'accept_photos', {}, this.now());
+    this.emit();
+    void this.processCollage(session.id);
+    return this.getSnapshot();
+  }
+
+  retryUpload(): BoothSnapshot {
+    const session = this.requireActive();
+    if (session.state !== 'upload_failed') {
+      throw new AppError('upload_not_retryable', 'The upload does not need a retry.');
+    }
+    const job = this.repository.getUploadJobForSession(session.id);
+    if (!job) throw new AppError('upload_job_missing', 'The upload job could not be found.');
+    this.repository.retryUpload(job.id, this.now());
+    this.uploadQueue.wake();
+    this.emit();
+    return this.getSnapshot();
+  }
+
+  async finishOffline(): Promise<BoothSnapshot> {
+    const session = this.requireActive();
+    if (session.state !== 'upload_failed' && session.state !== 'pending_upload') {
+      throw new AppError('offline_delivery_unavailable', 'Finish offline is not available now.');
+    }
+    await this.uploadQueue.completeOffline(session.id);
+    await this.handleUploadReady(session.id);
+    return this.getSnapshot();
+  }
+
+  done(): BoothSnapshot {
+    const session = this.requireActive();
+    if (session.state !== 'final' || !this.qrBySession.has(session.id)) {
+      throw new AppError('finish_unavailable', 'The photo is not ready to finish.');
+    }
+    this.transition(session, 'done', { completedAt: this.now() }, this.now());
+    this.qrBySession.delete(session.id);
+    this.activeSessionId = null;
+    this.emit();
+    return attractSnapshot(this.options.cameraPreviewEnabled ?? false);
+  }
+
+  async restartSession(sessionId: string): Promise<BoothSnapshot> {
+    const session = this.repository.requireSession(sessionId);
+    if (this.activeSessionId !== sessionId) {
+      throw new AppError('session_not_active', 'That photo session is not active.');
+    }
+    if (session.state === 'upload_failed') return this.retryUpload();
+    if (session.state !== 'camera_error' && session.state !== 'interrupted') {
+      throw new AppError('restart_unavailable', 'This photo session does not need a restart.');
+    }
+    if (!(await this.connectCameraFor(session))) return this.getSnapshot();
+    this.beginCountdown(this.repository.startRetakeRound(session.id, this.now()));
+    return this.getSnapshot();
+  }
+
+  async close(): Promise<void> {
+    this.closed = true;
+    if (this.countdownTimer) clearTimeout(this.countdownTimer);
+    this.uploadQueue.stop();
+    await Promise.all([this.camera.disconnect(), this.imageProcessor.close()]);
+  }
+
+  private beginCountdown(session: StoredSession): void {
+    if (session.state !== 'countdown')
+      throw new AppError('state_conflict', 'Countdown cannot start now.');
+    if (this.countdownTimer) clearTimeout(this.countdownTimer);
+    this.countdownEndsAt = this.now() + this.options.countdownMs;
+    this.countdownTimer = setTimeout(
+      () => void this.captureNext(session.id),
+      this.options.countdownMs,
+    );
+    this.emit();
+  }
+
+  private async captureNext(sessionId: string): Promise<void> {
+    if (this.closed || this.activeSessionId !== sessionId) return;
+    this.countdownTimer = null;
+    this.countdownEndsAt = null;
+    let session = this.repository.requireSession(sessionId);
+    try {
+      session = this.transition(session, 'countdown_elapsed', {}, this.now());
+      this.emit();
+      const captureId = randomUUID();
+      const result = await this.camera.capture({
+        sessionId,
+        captureId,
+        shotNumber: session.captureCount + 1,
+        timeoutMs: 120_000,
+      });
+      const bytes = await captureBytes(result);
+      const metadata = await this.imageProcessor.validateSourceJpeg(bytes);
+      const stored = this.vault.write('pending', bytes);
+      const asset: NewAsset = {
+        id: captureId,
+        sessionId,
+        kind: 'capture',
+        retakeRound: session.captureRound,
+        shotNumber: session.captureCount + 1,
+        encryptedPath: stored.relativePath,
+        width: metadata.width,
+        height: metadata.height,
+        byteSize: stored.byteSize,
+        sha256: stored.sha256,
+        createdAt: this.now(),
+      };
+      try {
+        session = this.repository.addCapture(asset, this.now());
+      } catch (error) {
+        this.vault.delete(stored.relativePath);
+        throw error;
+      }
+      if (session.state === 'countdown') this.beginCountdown(session);
+      else this.emit();
+    } catch (error) {
+      const safe = toSafeError(error);
+      const current = this.repository.getSession(sessionId);
+      if (current?.state === 'capturing' || current?.state === 'countdown') {
+        this.transition(
+          current,
+          'camera_failed',
+          {
+            lastErrorCode: safe.code.slice(0, 80),
+            lastErrorMessage:
+              'The camera could not take the photo. Please ask an operator for help.',
+          },
+          this.now(),
+        );
+      }
+      this.emit();
+    }
+  }
+
+  private async processCollage(sessionId: string): Promise<void> {
+    try {
+      const assets = this.repository
+        .listCurrentAssets(sessionId)
+        .filter((asset) => asset.kind === 'capture')
+        .sort((left, right) => (left.shotNumber ?? 0) - (right.shotNumber ?? 0));
+      if (assets.length !== PHOTO_COUNT)
+        throw new AppError('capture_count', 'Four photos are required.');
+      const captures = assets.map((asset) => this.vault.read(asset.encryptedPath)) as [
+        Buffer,
+        Buffer,
+        Buffer,
+        Buffer,
+      ];
+      const frame = this.repository.getActiveFrame();
+      if (!frame) throw new AppError('frame_missing', 'The active photo frame is missing.');
+      const framePng = this.vault.read(frame.encryptedPath);
+      const result = await this.imageProcessor.process({
+        captures,
+        framePng,
+        slots: frame.slots,
+        frameAspectRatio: frame.width / frame.height,
+        longEdge: 2_700,
+      });
+      const stored = this.vault.write('completed', result.bytes);
+      const assetId = randomUUID();
+      try {
+        this.repository.saveCollageAndQueue(
+          {
+            id: assetId,
+            sessionId,
+            kind: 'collage',
+            retakeRound: this.repository.requireSession(sessionId).captureRound,
+            shotNumber: null,
+            encryptedPath: stored.relativePath,
+            width: result.width,
+            height: result.height,
+            byteSize: stored.byteSize,
+            sha256: stored.sha256,
+            createdAt: this.now(),
+          },
+          randomUUID(),
+          this.now(),
+        );
+      } catch (error) {
+        this.vault.delete(stored.relativePath);
+        throw error;
+      }
+      this.uploadQueue.wake();
+      this.emit();
+    } catch (error) {
+      const safe = toSafeError(error);
+      const session = this.repository.getSession(sessionId);
+      if (session?.state === 'processing') {
+        this.transition(
+          session,
+          'processing_interrupted',
+          {
+            lastErrorCode: safe.code.slice(0, 80),
+            lastErrorMessage:
+              'The collage could not be completed. Please ask an operator for help.',
+          },
+          this.now(),
+        );
+      }
+      this.emit();
+    }
+  }
+
+  private handleUploadAuthRequired(sessionId: string): void {
+    const session = this.repository.getSession(sessionId);
+    if (!session) return;
+    if (session.state === 'uploading' || session.state === 'pending_upload') {
+      try {
+        this.transition(
+          session,
+          'upload_failed',
+          {
+            lastErrorCode: 'cloud_auth_required',
+            lastErrorMessage:
+              'Cloud connection is unauthenticated. Connect the booth account in settings or finish offline.',
+          },
+          this.now(),
+        );
+      } catch {
+        // Handled if already transitioned
+      }
+    }
+    this.emitIfActive(sessionId);
+  }
+
+  private handleUploadFailed(sessionId: string): void {
+    const session = this.repository.getSession(sessionId);
+    if (!session) return;
+    if (session.state === 'uploading' || session.state === 'pending_upload') {
+      try {
+        this.transition(
+          session,
+          'upload_failed',
+          {
+            lastErrorCode: session.lastErrorCode ?? 'upload_failed',
+            lastErrorMessage:
+              session.lastErrorMessage ??
+              'The photo upload could not be completed. You can retry or finish offline.',
+          },
+          this.now(),
+        );
+      } catch {
+        // Handled if already transitioned
+      }
+    }
+    this.emitIfActive(sessionId);
+  }
+
+  private async handleUploadReady(sessionId: string): Promise<void> {
+    const session = this.repository.getSession(sessionId);
+    if (!session?.publicSecretRef) return;
+    const secret = this.uploadQueue.readDeliverySecret(session.publicSecretRef);
+    if (!secret.ready) return;
+    const receipt = validateReadyReceipt(secret.photoSessionId, secret.publicToken, secret.ready);
+    const qr = await this.qrService.render(receipt);
+    this.qrBySession.set(sessionId, qr.imageDataUrl);
+    const current = this.repository.requireSession(sessionId);
+    if (current.state === 'ready') {
+      this.transition(current, 'qr_ready', {}, this.now());
+    }
+    this.emitIfActive(sessionId);
+  }
+
+  private requireActive(): StoredSession {
+    if (!this.activeSessionId) throw new AppError('session_missing', 'No photo session is active.');
+    return this.repository.requireSession(this.activeSessionId);
+  }
+
+  private async connectCameraFor(session: StoredSession): Promise<boolean> {
+    try {
+      const status = await this.camera.connect();
+      if (status.state !== 'ready' || !status.capabilities.stillCapture) {
+        throw new AppError(
+          status.code ?? 'camera_unavailable',
+          status.operatorMessage || 'The camera is unavailable.',
+        );
+      }
+      return true;
+    } catch (error) {
+      const safe = toSafeError(error);
+      const current = this.repository.requireSession(session.id);
+      if (current.state === 'countdown') {
+        this.transition(
+          current,
+          'camera_failed',
+          {
+            lastErrorCode: safe.code.slice(0, 80),
+            lastErrorMessage: 'The camera is unavailable. Please ask an operator for help.',
+          },
+          this.now(),
+        );
+      }
+      this.emit();
+      return false;
+    }
+  }
+
+  private transition(
+    session: StoredSession,
+    event: SessionEvent,
+    patch: Parameters<LocalRepository['transitionSession']>[3] = {},
+    now = this.now(),
+  ): StoredSession {
+    const next = reduceSessionState(session.state, event);
+    return this.repository.transitionSession(session.id, [session.state], next, patch, now);
+  }
+
+  private emitIfActive(sessionId: string): void {
+    if (this.activeSessionId === sessionId) this.emit();
+  }
+
+  private emit(): void {
+    const snapshot = this.getSnapshot();
+    for (const listener of this.listeners) listener(snapshot);
+  }
+}
+
+function attractSnapshot(cameraPreviewEnabled: boolean): BoothSnapshot {
+  return {
+    screen: 'attract',
+    state: null,
+    sessionId: null,
+    shotNumber: null,
+    captureCount: 0,
+    countdownEndsAt: null,
+    cameraPreviewEnabled,
+    media: { captureUrls: [], collageUrl: null, qrImageUrl: null },
+    controls: {
+      canStart: true,
+      canRetakeAll: false,
+      canAcceptPhotos: false,
+      canRetryUpload: false,
+      canFinishOffline: false,
+      canFinish: false,
+    },
+    errorCode: null,
+    message: null,
+  };
+}
+
+function screenFor(state: SessionState, qrReady: boolean): BoothSnapshot['screen'] {
+  if (state === 'countdown') return 'countdown';
+  if (state === 'capturing') return 'capturing';
+  if (state === 'review') return 'review';
+  if (
+    state === 'processing' ||
+    state === 'pending_upload' ||
+    state === 'uploading' ||
+    state === 'ready'
+  ) {
+    return qrReady ? 'final' : 'processing';
+  }
+  if (state === 'final') return qrReady ? 'final' : 'processing';
+  if (state === 'camera_error' || state === 'upload_failed' || state === 'interrupted')
+    return 'recovery';
+  return 'attract';
+}
+
+function guestErrorFor(session: StoredSession): GuestErrorCode | null {
+  if (session.state === 'camera_error') return 'capture_failed';
+  if (session.state === 'upload_failed') return 'upload_failed';
+  if (session.state === 'interrupted') {
+    return session.lastErrorCode?.includes('processing') ? 'processing_failed' : 'interrupted';
+  }
+  return null;
+}
+
+function messageFor(session: StoredSession): string | null {
+  if (session.state === 'processing') return 'Creating your Grace Booth collage…';
+  if (session.state === 'pending_upload')
+    return 'Your collage is saved. Preparing secure delivery…';
+  if (session.state === 'uploading') return 'Securely uploading your collage…';
+  if (session.state === 'ready') return 'Preparing your private QR code…';
+  if (session.state === 'camera_error')
+    return 'We couldn’t take that photo. Please ask an operator for help.';
+  if (session.state === 'upload_failed') {
+    return (
+      session.lastErrorMessage ??
+      'Your photo is saved on this booth. Select Retry upload when the connection is ready, or finish offline.'
+    );
+  }
+  if (session.state === 'interrupted')
+    return 'This session needs an operator to restart it safely.';
+  return null;
+}
+
+function mediaUrl(identifier: string): string {
+  return `grace-booth-media://asset/${identifier}`;
+}
+
+async function captureBytes(result: CaptureResult): Promise<Buffer> {
+  if (result.kind === 'buffer') return Buffer.from(result.bytes);
+  const bytes = await readFile(result.path);
+  if (bytes.byteLength > MAX_CAPTURE_BYTES) {
+    throw new AppError('capture_size', 'The camera photo exceeds the safe size limit.');
+  }
+  return bytes;
+}

@@ -1,0 +1,28 @@
+packages:
+  - apps/*
+  - packages/*
+
+catalog:
+  '@types/node': 24.10.1
+  typescript: 6.0.3
+  vite: 7.3.6
+  vitest: 4.1.10
+
+catalogMode: strict
+
+cleanupUnusedCatalogs: true
+
+linkWorkspacePackages: true
+
+allowBuilds:
+  '@parcel/watcher': true
+  better-sqlite3: true
+  deno: true
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  sharp: true
+
+saveWorkspaceProtocol: rolling
+
+sharedWorkspaceLockfile: true

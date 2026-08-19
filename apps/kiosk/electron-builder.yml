@@ -1,0 +1,48 @@
+appId: org.gracebooth.kiosk
+productName: Grace Booth
+artifactName: Grace-Booth-${version}-${arch}-setup.${ext}
+asar: true
+asarUnpack:
+  - '**/node_modules/@img/**/*'
+  - '**/node_modules/better-sqlite3/**/*'
+  - '**/node_modules/sharp/**/*'
+compression: maximum
+directories:
+  buildResources: build
+  output: release
+files:
+  - out/**/*
+  - package.json
+extraResources:
+  - from: migrations
+    to: migrations
+    filter:
+      - '**/*.sql'
+  - from: resources
+    to: resources
+    filter:
+      - '**/*'
+forceCodeSigning: false
+npmRebuild: false
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  verifyUpdateCodeSignature: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Grace Booth

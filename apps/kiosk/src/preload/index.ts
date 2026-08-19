@@ -1,0 +1,83 @@
+import {
+  BOOTH_SNAPSHOT_EVENT,
+  BoothSnapshotEventSchema,
+  CAMERA_FRAME_REQUEST_EVENT,
+  CameraFrameRequestEventSchema,
+  IpcContracts,
+  type GraceBoothBridge,
+  type IpcChannel,
+  type IpcRequest,
+  type IpcResponse,
+} from '@grace-booth/shared';
+import { contextBridge, ipcRenderer } from 'electron';
+
+async function invoke<C extends IpcChannel>(
+  channel: C,
+  input: IpcRequest<C>,
+): Promise<IpcResponse<C>> {
+  const validatedInput = IpcContracts[channel].request.safeParse(input);
+  if (!validatedInput.success) {
+    const issues = validatedInput.error.issues
+      .map((i) => (i.path.length > 0 ? `${i.path.join('.')}: ${i.message}` : i.message))
+      .join(', ');
+    return {
+      ok: false,
+      error: { code: 'invalid_request', message: issues || 'Invalid input.', retryable: false },
+    } as IpcResponse<C>;
+  }
+  const untrustedResponse: unknown = await ipcRenderer.invoke(channel, validatedInput.data);
+  return IpcContracts[channel].response.parse(untrustedResponse) as IpcResponse<C>;
+}
+
+const bridge: GraceBoothBridge = {
+  booth: {
+    getSnapshot: () => invoke('booth:get-snapshot', {}),
+    start: () => invoke('booth:start', {}),
+    retakeAll: () => invoke('booth:retake-all', {}),
+    acceptPhotos: () => invoke('booth:accept-photos', {}),
+    retryUpload: () => invoke('booth:retry-upload', {}),
+    finishOffline: () => invoke('booth:finish-offline', {}),
+    done: () => invoke('booth:done', {}),
+    getCameras: () => invoke('booth:get-cameras', {}),
+    setCamera: (input) => invoke('booth:set-camera', input),
+    submitCameraFrame: (captureId, jpegBase64) =>
+      invoke('booth:submit-camera-frame', { captureId, jpegBase64 }),
+    subscribe: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, value: unknown): void => {
+        const parsed = BoothSnapshotEventSchema.safeParse(value);
+        if (parsed.success) listener(parsed.data);
+      };
+      ipcRenderer.on(BOOTH_SNAPSHOT_EVENT, handler);
+      return () => ipcRenderer.removeListener(BOOTH_SNAPSHOT_EVENT, handler);
+    },
+    onCameraFrameRequest: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, value: unknown): void => {
+        const parsed = CameraFrameRequestEventSchema.safeParse(value);
+        if (parsed.success) listener(parsed.data);
+      };
+      ipcRenderer.on(CAMERA_FRAME_REQUEST_EVENT, handler);
+      return () => ipcRenderer.removeListener(CAMERA_FRAME_REQUEST_EVENT, handler);
+    },
+  },
+  admin: {
+    getAuthStatus: () => invoke('admin:get-auth-status', {}),
+    login: (passcode) => invoke('admin:login', { passcode }),
+    logout: () => invoke('admin:logout', {}),
+    bootstrapPasscode: (passcode) => invoke('admin:bootstrap-passcode', { passcode }),
+    changePasscode: (currentPasscode, newPasscode) =>
+      invoke('admin:change-passcode', { currentPasscode, newPasscode }),
+    getSettings: () => invoke('admin:get-settings', {}),
+    saveSettings: (input) => invoke('admin:save-settings', input),
+    chooseFrame: () => invoke('admin:choose-frame', {}),
+    saveFrameLayout: (input) => invoke('admin:save-frame-layout', input),
+    chooseLanCertificate: (passphrase) => invoke('admin:choose-lan-certificate', { passphrase }),
+    listUploadJobs: (input = {}) => invoke('admin:list-upload-jobs', input),
+    retryUpload: (uploadJobId) => invoke('admin:retry-upload', { uploadJobId }),
+    getHealth: () => invoke('admin:get-health', {}),
+    restartSession: (sessionId) => invoke('admin:restart-session', { sessionId }),
+    connectCloud: (email, password, supabaseUrl, supabasePublishableKey) =>
+      invoke('admin:connect-cloud', { email, password, supabaseUrl, supabasePublishableKey }),
+  },
+};
+
+contextBridge.exposeInMainWorld('graceBooth', bridge);

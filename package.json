@@ -1,0 +1,53 @@
+{
+  "name": "grace-booth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline-first Grace Booth kiosk and private Supabase delivery service",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "pnpm": ">=11.0.0 <12"
+  },
+  "scripts": {
+    "dev:kiosk": "pnpm --filter @grace-booth/kiosk dev",
+    "dev:public": "pnpm --filter @grace-booth/public dev",
+    "dev:supabase": "pnpm functions:serve",
+    "supabase:start": "supabase start --workdir supabase",
+    "supabase:stop": "supabase stop --workdir supabase",
+    "db:reset": "supabase db reset --workdir supabase",
+    "functions:serve": "supabase functions serve --workdir supabase --env-file supabase/.env.local",
+    "lint": "eslint . --max-warnings=0 && pnpm functions:lint",
+    "functions:lint": "deno lint --config supabase/functions/deno.json supabase/functions",
+    "format": "prettier --write . && deno fmt --config supabase/functions/deno.json supabase/functions",
+    "format:check": "prettier --check . && pnpm functions:format:check",
+    "functions:format:check": "deno fmt --check --config supabase/functions/deno.json supabase/functions",
+    "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r --if-present typecheck && pnpm functions:check",
+    "functions:check": "deno task --cwd supabase/functions check",
+    "test": "pnpm -r --if-present test && pnpm test:functions",
+    "test:functions": "deno task --cwd supabase/functions test",
+    "test:supabase:integration": "deno task --cwd supabase/functions test:integration",
+    "test:e2e": "pnpm --filter @grace-booth/kiosk build && playwright test",
+    "build": "pnpm -r --if-present build",
+    "dist:win": "pnpm --filter @grace-booth/kiosk dist:win",
+    "native:self-test": "pnpm --filter @grace-booth/kiosk native:self-test",
+    "native:self-test:packaged": "pnpm --filter @grace-booth/kiosk native:self-test:packaged",
+    "resources:generate": "pnpm --filter @grace-booth/kiosk resources:generate"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@eslint/js": "9.39.2",
+    "@playwright/test": "1.62.1",
+    "@types/node": "catalog:",
+    "deno": "2.9.5",
+    "eslint": "9.39.2",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "eslint-plugin-react-refresh": "0.5.2",
+    "globals": "16.5.0",
+    "playwright": "1.62.1",
+    "prettier": "3.8.1",
+    "supabase": "2.114.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.67.0",
+    "vitest": "4.1.10"
+  }
+}

@@ -1,0 +1,2 @@
+-- Production booth identities are created through the Supabase Auth admin surface and
+-- explicitly enrolled in public.booth_devices. Local tests create isolated identities.
