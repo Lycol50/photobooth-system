@@ -261,3 +261,51 @@ pnpm native:self-test
 - **Strict Sandboxing**: The Electron renderer runs in a context-isolated sandbox with no direct access to Node.js, IPC internals, the filesystem, or raw database connections.
 - **Local Encryption at Rest**: Local guest photos and session data are encrypted using AES-256-GCM with keys protected by Windows DPAPI via Electron `safeStorage`.
 - **Automatic 720-Hour Expiry**: Cloud photos expire exactly 30 days (720 hours) after confirmation and are permanently purged by the automated cleanup cron job.
+
+---
+
+## 10. Troubleshooting & FAQ
+
+### Issue: `Error: Electron uninstall` when running `pnpm dev:kiosk`
+
+**Symptom**:
+```text
+Error: Electron uninstall
+    at getElectronPath (.../electron-vite/dist/chunks/lib-q6ns0vZr.js:155:19)
+    at startElectron (...)
+```
+
+**Cause**:
+`electron-vite` throws this error when the precompiled Electron executable (`electron.exe`) was not downloaded during the initial `pnpm install` (e.g. postinstall script was skipped, interrupted, or blocked by a firewall/proxy).
+
+**Solution**:
+
+1. **Force download / rebuild the Electron binary** (Fastest fix):
+   ```powershell
+   pnpm rebuild electron
+   ```
+   *Or run the install script directly:*
+   ```powershell
+   node node_modules/.pnpm/electron@43.4.0/node_modules/electron/install.js
+   ```
+
+2. **If dependencies were partially installed**, run a clean forced install:
+   ```powershell
+   pnpm install --force
+   ```
+
+3. **If behind a corporate proxy, VPN, or firewall** (where GitHub Release downloads are blocked):
+   Set the Electron download mirror before rebuilding:
+   ```powershell
+   # In PowerShell:
+   $env:ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/"
+   pnpm rebuild electron
+   ```
+
+4. **Verify Node & pnpm Versions**:
+   Ensure you are using **Node >= 24** and **pnpm >= 11** as specified in `package.json`:
+   ```powershell
+   node -v   # Should output v24.x
+   pnpm -v   # Should output v11.x
+   ```
+
