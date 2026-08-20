@@ -85,7 +85,7 @@ Create a dedicated Supabase Auth user for your booth kiosk:
 2. Copy the newly created user's **UUID**.
 3. In **SQL Editor**, enroll this user as an authorized booth device:
    ```sql
-   INSERT INTO public.booth_devices (user_id, device_name, is_active)
+   INSERT INTO public.booth_devices (user_id, device_name, enabled)
    VALUES ('<PASTE-USER-UUID-HERE>', 'Main Kiosk 01', true);
    ```
 
