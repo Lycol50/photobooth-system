@@ -266,10 +266,10 @@ describe('App guest flow', () => {
 
     render(<App />);
     await screen.findByTestId('attract-screen');
-    await user.click(screen.getByRole('button', { name: /start session/i }));
+    await user.click(screen.getByRole('button', { name: /start photo session/i }));
 
     expect(await screen.findByTestId('capture-screen')).toHaveAttribute('data-phase', 'countdown');
-    expect(screen.getByText('PHOTO 1 OF 4')).toBeVisible();
+    expect(screen.getByText('Photo 1 of 4')).toBeVisible();
     expect(harness.startMock).toHaveBeenCalledOnce();
   });
 

@@ -3,9 +3,7 @@ import {
   CameraIcon as Camera,
   CheckCircleIcon as CheckCircle,
   GearIcon as Gear,
-  HardDrivesIcon as HardDrives,
   LockKeyIcon as LockKey,
-  SlidersHorizontalIcon as SlidersHorizontal,
 } from '@phosphor-icons/react';
 import { useEffect, useRef } from 'react';
 
@@ -66,27 +64,16 @@ export function AttractScreen({
           <div className="attract-card__motif" aria-hidden="true">
             <Aperture weight="bold" />
           </div>
-          <div className="attract-card__sys-tag">M.A.T. // PHOTO-SYS // REV-4.0</div>
         </div>
 
         <h1 id="attract-title">M.A.T. PHOTOBOOTH</h1>
-        <p className="attract-card__subtitle">PRECISION EVENT ARCHIVE</p>
-        <p className="attract-card__lead">Capture four high-resolution frames. Instant composite rendering with secure QR dispatch.</p>
+        <p className="attract-card__subtitle">EVENT PHOTOBOOTH</p>
+        <p className="attract-card__lead">Take four photos, get a collage, and download it with a QR code.</p>
 
-        <div className="attract-telemetry-block" aria-label="System telemetry status">
-          <div className="attract-telemetry-item">
-            <CheckCircle aria-hidden="true" weight="bold" />
-            <span>OPTICS: <strong className="status--ready">READY</strong></span>
-          </div>
-          <div className="attract-telemetry-item">
-            <HardDrives aria-hidden="true" weight="bold" />
-            <span>STORAGE: <strong>NVME // SECURE</strong></span>
-          </div>
-          <div className="attract-telemetry-item">
-            <SlidersHorizontal aria-hidden="true" weight="bold" />
-            <span>OUTPUT: <strong>4-SLOT COLLAGE</strong></span>
-          </div>
-        </div>
+        <p className="attract-status" role="status">
+          <CheckCircle aria-hidden="true" weight="bold" />
+          <span>4 photos · collage · QR download</span>
+        </p>
 
         <Button
           className="button--attract-start"
@@ -96,7 +83,7 @@ export function AttractScreen({
           onClick={onStart}
           ref={startButtonRef}
         >
-          Initialize Capture Sequence · Start Session
+          Start photo session
         </Button>
       </section>
     </main>

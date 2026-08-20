@@ -1,5 +1,6 @@
 export const LOCAL_FIXTURES = {
   attractBackground: '/backgrounds/attract.jpg',
+  processingBackground: '/backgrounds/processing.jpg',
   countdownAudio: '/audio/countdown.wav',
   defaultFrame: '/frames/default-frame.png',
   mockPhotos: ['/mock/photo-1.jpg', '/mock/photo-2.jpg', '/mock/photo-3.jpg', '/mock/photo-4.jpg'],

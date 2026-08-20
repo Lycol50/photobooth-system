@@ -87,7 +87,7 @@ afterEach(cleanup);
 describe('guest screen components', () => {
   it('renders the locked countdown progress and current pose', () => {
     render(<CaptureScreen phase="countdown" secondsRemaining={5} shotNumber={3} />);
-    expect(screen.getByText('PHOTO 3 OF 4')).toBeVisible();
+    expect(screen.getByText('Photo 3 of 4')).toBeVisible();
     expect(screen.getByTestId('countdown-value')).toHaveTextContent('5');
     expect(screen.getByText('Peace signs and hugs!')).toBeVisible();
   });

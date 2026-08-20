@@ -10,7 +10,7 @@ export function ProgressStepper({ activeStep, label, total = 4 }: ProgressSteppe
   return (
     <div className="progress-stepper" aria-label={label ?? `Photo ${safeActiveStep} of ${total}`}>
       <span className="progress-stepper__label">
-        {label ?? `PHOTO ${safeActiveStep} OF ${total}`}
+        {label ?? `Photo ${safeActiveStep} of ${total}`}
       </span>
       <div className="progress-stepper__bars" aria-hidden="true">
         {Array.from({ length: total }, (_, index) => (

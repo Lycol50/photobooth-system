@@ -1,105 +1,263 @@
-# Grace Booth
+# M.A.T. PHOTOBOOTH // INDUSTRIAL PHOTO-SYS
 
-Grace Booth is an offline-first Windows photo-booth kiosk with private, time-limited cloud delivery. The MVP captures four photos through a deterministic mock camera, lets guests review or retake the full set, builds a framed collage locally, uploads it through an allowlisted booth identity, and reveals a QR code only after the cloud object has been verified.
+**M.A.T. Photobooth** is an offline-first Windows photobooth kiosk featuring an **Industrial Neo-Brutalist & Tactical Telemetry Interface** with private, time-limited cloud delivery via Supabase.
 
-The repository is implementation-only. It does not provision Supabase, Vercel, DNS, certificates, camera SDKs, or any hosted resource.
+The system captures 4 photos through a live optical webcam (or deterministic mock camera), allows guests to review the full set, composites a 300 DPI framed photo collage locally using Sharp, uploads it to an isolated private cloud bucket via authenticated Edge Functions, and generates a verified guest QR code for instant, fragment-based secure retrieval.
 
-## Repository layout
+---
 
-- `apps/kiosk`: Electron kiosk, local admin, encrypted storage, SQLite state, image worker, upload queue, and Windows packaging.
-- `apps/public`: static Vercel page for fragment-based photo retrieval and download.
-- `packages/shared`: Zod-validated domain, camera, cloud, snapshot, and typed IPC contracts.
-- `supabase`: SQL migrations, private Storage policy, Edge Functions, cleanup schedule, pgTAP, and Deno tests.
-- `tests/e2e`: browser and Electron acceptance tests.
-- `docs`: security, retention, verification, and Sony integration gates.
+## Architecture Overview
 
-## Locked runtime foundation
+- **`apps/kiosk`**: Authoritative Electron 43 desktop application, sandboxed React 19 renderer, local SQLite state with Drizzle ORM, AES-256-GCM encrypted local storage with `safeStorage`, background image composition worker (Sharp), upload retry queue, and Windows NSIS packaging.
+- **`apps/public`**: Fast, lightweight React + Vite web application (deployable to Vercel/Cloudflare) for zero-knowledge, fragment-based photo retrieval (`/photo#<token>`).
+- **`packages/shared`**: Shared Zod validation schemas, IPC types, telemetry contracts, and domain types.
+- **`supabase`**: PostgreSQL database migrations, Row-Level Security (RLS) policies, private Storage bucket, Deno-based Edge Functions, Vault secrets, and `pg_cron` cleanup jobs.
 
-- Node.js 24.x
-- pnpm 11.x
-- Electron 43.4
-- electron-vite 5 with Vite 7.3
-- React 19.2 and TypeScript 6
-- Fastify 5.12
-- better-sqlite3 13 and Sharp 0.35
+---
 
-Install the exact dependency graph with:
+## 1. Prerequisites & Toolchain
 
+Ensure your workstation meets the following requirements:
+
+- **Operating System**: Windows 11 / Windows 10 x64 (for Kiosk), cross-platform (macOS/Linux) for Web & Shared packages.
+- **Node.js**: `v24.x`
+- **Package Manager**: `pnpm v11.x` (managed via Corepack)
+- **Deno**: `v2.x` (for Supabase Edge Functions testing/development)
+- **Docker Desktop**: (Optional) required only if running the local Supabase container test suite.
+- **Camera**: Built-in laptop webcam, USB UVC camera, or the deterministic mock camera adapter.
+
+---
+
+## 2. Installation & Workspace Setup
+
+1. **Clone the repository**:
+   ```powershell
+   git clone <repository-url>
+   cd photobooth-system
+   ```
+
+2. **Enable Corepack & Install Dependencies**:
+   ```powershell
+   corepack enable
+   pnpm install --frozen-lockfile
+   ```
+
+3. **Install Playwright Browsers (for E2E tests)**:
+   ```powershell
+   pnpm exec playwright install chromium
+   ```
+
+---
+
+## 3. Cloud & Database Setup (Supabase)
+
+M.A.T. Photobooth uses **Supabase** for secure, time-limited photo delivery. You can set up either a **Hosted Supabase Project** (Production / Staging) or a **Local Docker-backed Supabase Instance**.
+
+### Option A: Hosted Supabase Setup (Recommended)
+
+#### Step 1: Create a Supabase Project
+1. Log in to [Supabase](https://supabase.com) and create a new project (Region recommendation: Singapore `ap-southeast-1` or Tokyo `ap-northeast-1`).
+2. Note down your **Project URL** and **Publishable Key** (or Anon Key) from **Project Settings > API**.
+
+#### Step 2: Push Database Migrations
+From the repository root, link your project and apply the migrations:
 ```powershell
-corepack enable
-pnpm install --frozen-lockfile
+# Link to your Supabase project (enter your database password when prompted)
+pnpm exec supabase link --project-ref <your-project-id>
+
+# Push migrations to the database
+pnpm exec supabase db push --workdir supabase
 ```
 
-Use `.env.example` as the configuration reference only when exercising a cloud-connected path. Electron reads inherited OS/service values; Vite may read an ignored root `.env` for the public build. The mock guest flow and most local tests do not need hosted credentials.
+#### Step 3: Configure the Private Storage Bucket
+1. In Supabase Dashboard, navigate to **Storage**.
+2. Create a bucket named `photos`:
+   - **Public bucket**: `OFF` (Strictly Private)
+   - **File size limit**: `12 MB`
+   - **Allowed MIME types**: `image/jpeg`
 
-A bare local build uses an inert `.invalid` public endpoint so the complete workspace can be verified without hosted credentials. That output cannot resolve photos at a real origin. The approved release workflow must provide both public-page values and regenerate the exact Vercel CSP before deployment.
+#### Step 4: Enroll Booth Device Account
+Create a dedicated Supabase Auth user for your booth kiosk:
+1. In Supabase Dashboard, go to **Authentication > Users** and click **Add User**.
+   - **Email**: `booth1@matphotobooth.local` (or your chosen email)
+   - **Password**: `<secure-booth-password>`
+   - **Auto Confirm User**: `YES`
+2. Copy the newly created user's **UUID**.
+3. In **SQL Editor**, enroll this user as an authorized booth device:
+   ```sql
+   INSERT INTO public.booth_devices (user_id, device_name, is_active)
+   VALUES ('<PASTE-USER-UUID-HERE>', 'Main Kiosk 01', true);
+   ```
 
-## Common commands
-
+#### Step 5: Configure Edge Function Secrets
+Set the required environment secrets for the Supabase Edge Functions:
 ```powershell
-pnpm dev:kiosk
-pnpm dev:public
-pnpm lint
-pnpm format:check
-pnpm typecheck
-pnpm test
-pnpm test:e2e
-pnpm build
-pnpm native:self-test
-pnpm dist:win
-pnpm native:self-test:packaged
+# Set Edge Function secrets
+pnpm exec supabase secrets set --workdir supabase `
+  PUBLIC_TOKEN_DERIVATION_KEY="<generate-random-32-byte-base64-key>" `
+  PUBLIC_PAGE_ORIGIN="http://127.0.0.1:4173" `
+  PHOTO_BUCKET="photos" `
+  CLEANUP_SECRET="<generate-random-32-character-string>"
+```
+*(Note: Change `PUBLIC_PAGE_ORIGIN` to your production public web URL, e.g. `https://photos.yourdomain.com`, when deploying to production).*
+
+#### Step 6: Configure Supabase Vault for Cron Cleanup
+In the Supabase **SQL Editor**, run the following to store the cleanup credentials in Supabase Vault:
+```sql
+SELECT vault.create_secret(
+  'https://<your-project-id>.supabase.co',
+  'grace_booth_project_url'
+);
+
+SELECT vault.create_secret(
+  '<SAME-VALUE-AS-CLEANUP_SECRET>',
+  'grace_booth_cleanup_secret'
+);
 ```
 
-Supabase database tests additionally require Docker Desktop or another compatible container runtime:
-
+#### Step 7: Deploy Edge Functions
+Deploy all 4 backend Edge Functions:
 ```powershell
+pnpm exec supabase functions deploy create-upload --workdir supabase
+pnpm exec supabase functions deploy confirm-upload --workdir supabase
+pnpm exec supabase functions deploy photo --workdir supabase --no-verify-jwt
+pnpm exec supabase functions deploy cleanup-expired --workdir supabase --no-verify-jwt
+```
+
+---
+
+### Option B: Local Supabase Development Setup (with Docker)
+
+If you have Docker Desktop running:
+```powershell
+# Start local Supabase container stack
 pnpm supabase:start
+
+# Reset and seed database migrations
 pnpm db:reset
+
+# Run database pgTAP tests
 pnpm exec supabase test db supabase/tests/database --local --workdir supabase
 ```
 
-Edge Function checks do not require Docker:
+---
+
+## 4. Configuring Environment Variables
+
+### Kiosk Application (`apps/kiosk`)
+Set environment variables in your PowerShell session (or Windows system environment):
 
 ```powershell
-pnpm functions:check
-pnpm functions:lint
-pnpm functions:format:check
-pnpm test:functions
+# Camera Adapter: 'webcam' (Default) or 'mock' (Deterministic fixture photos)
+$env:GRACE_BOOTH_CAMERA_ADAPTER = "webcam"
+
+# Supabase Cloud Connection (Optional for offline-only mock mode)
+$env:GRACE_BOOTH_SUPABASE_URL = "https://<your-project-id>.supabase.co"
+$env:GRACE_BOOTH_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_..."
 ```
 
-See [SETUP.md](./SETUP.md) for first-run bootstrap, cloud identity, public-page configuration, and Windows packaging.
-The latest workstation results and explicit external-test blocks are recorded in [docs/VERIFICATION.md](./docs/VERIFICATION.md).
+### Public Web App (`apps/public`)
+Create an `.env` file in `apps/public/` (or set in Vercel / deployment environment):
+```env
+VITE_PUBLIC_PHOTO_API_URL=https://<your-project-id>.supabase.co/functions/v1/photo
+VITE_PUBLIC_PAGE_ORIGIN=https://photos.yourdomain.com
+```
 
-## Security model
+---
 
-Electron main is authoritative. It owns countdown timing, legal state transitions, camera access, persistence, image processing, uploads, QR creation, authentication, and cleanup. The sandboxed React renderer receives only validated, sanitized snapshots through a fixed preload bridge. It has no generic IPC, filesystem, process, shell, database, or Supabase access.
+## 5. How to Run the System
 
-Guest media is AES-256-GCM encrypted at rest with a random installation key wrapped by Electron `safeStorage`. Passcodes use serialized built-in scrypt with a fresh 32-byte salt, a 64-byte result, `N=131072`, `r=8`, and `p=1`. There is no default passcode. The first local launch requires an 8 to 64 character operator passcode.
+### Running the Kiosk (Desktop App)
+To launch the Electron kiosk in development mode with live hot-reload:
+```powershell
+pnpm dev:kiosk
+```
 
-For each owner and client-session idempotency key, `create-upload` derives one stable 32-byte bearer token with a server-only, domain-separated HMAC-SHA256 key. Concurrent or lost-response retries therefore return the same token without storing it in plaintext; Postgres stores only its SHA-256 hash. Electron seals the token immediately. It appears in a QR URL fragment, `https://<public-origin>/photo#<token>`, so it is absent from Vercel and Supabase request paths. The public page sends it only in strict POST bodies. No analytics or third-party renderer requests are used.
+### Running the Public Web App
+To run the public photo retrieval site locally:
+```powershell
+pnpm dev:public
+```
+The public page serves `/photo#<token>` for guest downloads.
 
-Cloud access ends exactly 720 hours after successful confirmation. Local originals, prior retake rounds, previews, and collages are retained for 60 days. Cleanup timing cannot extend public access because every image and download request rechecks the exact expiry.
+---
 
-See [security and retention operations](./docs/SECURITY_AND_RETENTION.md) for the full boundary and incident procedure.
+## 6. How to Use the System
 
-## MVP boundaries
+### Guest User Flow
+1. **Attract Screen**: Displays telemetry diagnostics and brand identity. Tap **"START PHOTO-SYS SESSION"**.
+2. **Viewfinder & Countdown**: The live camera feed appears. An automated countdown (with frameless timer) counts down for each of the 4 shots.
+3. **Review Capture Matrix**: Displays the 4 captures framed on paper mats.
+   - Click **"RETAKE ALL PHOTOS"** to discard and retake the 4-shot sequence.
+   - Click **"USE THESE PHOTOS"** to accept and proceed to processing.
+4. **Processing & Cloud Sync**: The kiosk composites the final photo strip at 300 DPI, uploads it to Supabase Storage, and validates the upload.
+5. **Final QR Screen**: Displays the composite photo alongside a secure QR Code. Guests scan the QR code to view and download their photo strip on their phone.
+6. Tap **"DONE // FINISH SESSION"** to return to the Attract screen.
 
-- `MockCameraAdapter` is the supported camera for this build. It uses packaged deterministic JPEG fixtures and honest illustrative preview copy.
-- `SonyCameraAdapter` returns `unsupported_pending_model_verification`. No Sony SDK binary is included. The evidence and hardware tests required to proceed are in [the Sony integration gate](./docs/SONY_CAMERA_INTEGRATION.md).
-- `MediaPipeCropStrategy` is present as a capability boundary but reports unavailable in the Node worker. The required deterministic center crop remains active.
-- Local administration binds to loopback. Optional LAN administration is disabled unless an operator selects a private interface and supplies an HTTPS PFX. Plaintext LAN HTTP is never enabled.
-- The generated Windows installer is unsigned and intended only for internal verification. Production requires a code-signing decision and Windows 11 or an actively supported Windows 10 ESU installation.
+### Operator & Admin Panel
+1. Click the **"ADMIN"** button in the top-right corner of any screen.
+2. Enter the **Operator Passcode** (created on first launch; 8–64 characters).
+3. **Frame Editor (`FRAME`)**:
+   - Preview and adjust the 4 photo slots on the canvas.
+   - Use layout presets (**2×2 Grid**, **4-Strip**, **Hero+3**).
+   - Enter precise coordinate percentages (`X`, `Y`, `Width`, `Height`) or select **Crop-to-fill** vs. **Fit**.
+   - Click **"Replace Frame"** to upload a new transparent PNG overlay.
+4. **Settings & Telemetry (`SETTINGS`)**:
+   - **Subsystem Health**: Live diagnostics for Optical hardware, Database, Encrypted storage, and Cloud gateway.
+   - **Camera Setup**: Test optical capture feeds, switch camera adapters, or select USB devices.
+   - **Cloud Identity**: Sign into the dedicated booth device account (`booth1@...`).
+   - **Photo Delivery & Forms**: Configure optional Google Forms URL for event registrations.
+   - **Retention Policies**: View locked 30-day cloud / 60-day local retention timers.
+   - **Upload Queue Buffer**: Inspect and manually retry pending/failed cloud uploads.
 
-## Cloud delivery contract
+---
 
-The private `photos` bucket grants no direct anonymous or authenticated reads. A dedicated booth Auth user must be explicitly enabled in `booth_devices`; Electron carries only that user's session and the project publishable key. Edge Functions alone use the server secret.
+## 7. Building for Production
 
-The delivery sequence is:
+### Package Windows Kiosk (NSIS Installer)
+To compile and build the production Windows desktop installer:
+```powershell
+pnpm build
+pnpm dist:win
+```
+The output installer (`Grace Booth Setup <version>.exe`) will be generated in `apps/kiosk/release/`.
 
-1. `create-upload` assigns an opaque object path and returns the session's stable bearer token plus a two-hour upload capability.
-2. The kiosk seals the raw token before uploading and keeps the signed upload capability in memory only.
-3. `confirm-upload` verifies ownership, token, object bytes, JPEG signature, dimensions, size, type, and SHA-256.
-4. Confirmation returns an immutable ready receipt. Only `QrService` accepts that receipt, so a QR cannot be created for pending or unverified media.
-5. The public page resolves, displays, and downloads through controlled POST endpoints until the exact expiry.
+### Build Public Web App
+```powershell
+pnpm --filter @grace-booth/public build
+```
+Deploy the `apps/public/dist/` directory to Vercel, Cloudflare Pages, or any static hosting provider.
 
-Detailed deployment preparation is documented in [the Supabase service README](./supabase/README.md) and [the public-page README](./apps/public/README.md). Those steps require separate deployment approval.
+---
+
+## 8. Verification & Test Suite
+
+Run the full automated test suite across all packages:
+
+```powershell
+# Run all unit and component tests (117 tests across shared, public, kiosk, and edge functions)
+pnpm test
+
+# Run strict TypeScript typechecking
+pnpm typecheck
+
+# Run linter and formatting checks
+pnpm lint
+pnpm format:check
+
+# Run Deno Edge Function tests
+pnpm test:functions
+
+# Run native module integrity self-test under Electron
+pnpm native:self-test
+```
+
+---
+
+## 9. Security & Data Protection
+
+- **Zero Plaintext Tokens**: Guest bearer tokens are derived on-the-fly via server-side HMAC-SHA256 and never stored in plaintext in the database (only SHA-256 hashes are persisted).
+- **URL Fragment Privacy**: QR codes use URL fragments (`https://origin/photo#<token>`). Fragments are never sent in HTTP request headers or server logs.
+- **Strict Sandboxing**: The Electron renderer runs in a context-isolated sandbox with no direct access to Node.js, IPC internals, the filesystem, or raw database connections.
+- **Local Encryption at Rest**: Local guest photos and session data are encrypted using AES-256-GCM with keys protected by Windows DPAPI via Electron `safeStorage`.
+- **Automatic 720-Hour Expiry**: Cloud photos expire exactly 30 days (720 hours) after confirmation and are permanently purged by the automated cleanup cron job.

@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -150,7 +150,18 @@ const createWave = ({ durationSeconds, frequency, gain, sampleRate = 44_100, noi
   return buffer;
 };
 
-await saveSvgAsImage('backgrounds/attract.jpg', attractSvg, { jpeg: true });
+const skipGeneratedBackground = async (relativePath, svg, options = {}) => {
+  const target = join(resourcesRoot, relativePath);
+  try {
+    await access(target);
+    console.log(`Keeping custom ${relativePath}`);
+    return;
+  } catch {
+    await saveSvgAsImage(relativePath, svg, options);
+  }
+};
+
+await skipGeneratedBackground('backgrounds/attract.jpg', attractSvg, { jpeg: true });
 await saveSvgAsImage('backgrounds/recovery.jpg', recoverySvg, { jpeg: true });
 await saveSvgAsImage('frames/default-frame.png', frameSvg);
 

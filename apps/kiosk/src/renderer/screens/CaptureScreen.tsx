@@ -1,5 +1,4 @@
 import {
-  CameraIcon as Camera,
   CheckCircleIcon as CheckCircle,
 } from '@phosphor-icons/react';
 
@@ -30,7 +29,7 @@ export function CaptureScreen({
 }: CaptureScreenProps) {
   const safeShot = Math.max(1, Math.min(4, shotNumber));
   const poseSuggestion = POSE_COPY[safeShot - 1];
-  const countdownHint = secondsRemaining <= 3 ? 'HOLD POSE & SMILE' : 'PREPARE FRAME';
+  const countdownHint = secondsRemaining <= 3 ? 'Hold your pose' : 'Get ready';
 
   return (
     <main className="screen screen--capture" data-phase={phase} data-testid="capture-screen">
@@ -38,19 +37,10 @@ export function CaptureScreen({
         <ProgressStepper activeStep={safeShot} />
         <div className="camera-ready-badge" role="status">
           <CheckCircle aria-hidden="true" weight="bold" />
-          <span>{liveVideoRef && !liveStreamReady ? 'CALIBRATING OPTICS' : 'OPTICAL FEED ACTIVE'}</span>
+          <span>{liveVideoRef && !liveStreamReady ? 'Getting camera ready…' : 'Camera ready'}</span>
         </div>
       </header>
       <section className="viewfinder" aria-labelledby="capture-title">
-        {/* Technical Corner Crosshairs */}
-        <div className="viewfinder__crosshair viewfinder__crosshair--tl" aria-hidden="true">+</div>
-        <div className="viewfinder__crosshair viewfinder__crosshair--tr" aria-hidden="true">+</div>
-        <div className="viewfinder__crosshair viewfinder__crosshair--bl" aria-hidden="true">+</div>
-        <div className="viewfinder__crosshair viewfinder__crosshair--br" aria-hidden="true">+</div>
-        <div className="viewfinder__telemetry-tag" aria-hidden="true">
-          REC // CH-01 // 60FPS
-        </div>
-
         {liveVideoRef ? (
           <video
             className="viewfinder__live"
@@ -73,9 +63,7 @@ export function CaptureScreen({
         )}
         <div className="viewfinder__scrim" aria-hidden="true" />
         <div className="viewfinder__pose-copy">
-          <Camera aria-hidden="true" weight="bold" />
-          <span className="telemetry-prefix">FRAME 0{safeShot}</span>
-          <span className="sr-only">{poseSuggestion}</span>
+          <span>{poseSuggestion}</span>
         </div>
         {phase === 'countdown' ? (
           <div className="countdown-card">
@@ -103,7 +91,7 @@ export function CaptureScreen({
             aria-live="polite"
           >
             <h1 id="capture-title" data-screen-heading tabIndex={-1} className="sr-only">
-              CAPTURING FRAME
+              Taking photo
             </h1>
           </div>
         )}

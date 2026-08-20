@@ -9,6 +9,8 @@ import {
 
 import type { SessionState } from '@grace-booth/shared';
 
+import { LOCAL_FIXTURES } from '../local-fixtures';
+
 type ProcessingScreenProps = {
   message?: string | null;
   state: SessionState | null;
@@ -27,8 +29,8 @@ function copyForState(
 ): ProcessingCopy {
   if (state === 'uploading') {
     return {
-      headline: 'DISPATCHING ARCHIVE // SYNCING',
-      status: message ?? 'Uploading and cryptographically verifying output composite.',
+      headline: 'Uploading your photo',
+      status: message ?? 'Sending your collage to secure cloud storage.',
       activeStep: 2,
     };
   }
@@ -36,30 +38,30 @@ function copyForState(
   if (state === 'pending_upload') {
     return {
       headline: 'Your photo is safely saved',
-      status: message ?? 'Composite persisted to local storage. Waiting for secure upload dispatch.',
+      status: message ?? 'Your collage is saved on this booth. Waiting to upload when the connection is ready.',
       activeStep: 2,
     };
   }
 
   if (state === 'ready') {
     return {
-      headline: 'GENERATING SECURE QR PLATE',
-      status: 'Constructing tokenized distribution payload.',
+      headline: 'Preparing your QR code',
+      status: 'Creating a private download link for your phone.',
       activeStep: 3,
     };
   }
 
   return {
     headline: 'Creating your collage',
-    status: message ?? 'Compositing four frames into the M.A.T. Photobooth canvas.',
+    status: message ?? 'Combining your four photos into one finished image.',
     activeStep: 1,
   };
 }
 
 const STEPS = [
-  { label: 'RENDER // COMPOSITE', icon: FilmStrip },
-  { label: 'SYNC // VERIFY', icon: CloudArrowUp },
-  { label: 'QR-DISPATCH // TOKEN', icon: QrCode },
+  { label: 'Build collage', icon: FilmStrip },
+  { label: 'Upload', icon: CloudArrowUp },
+  { label: 'Create QR code', icon: QrCode },
 ] as const;
 
 export function ProcessingScreen({ message, onOpenAdmin, state }: ProcessingScreenProps) {
@@ -72,6 +74,14 @@ export function ProcessingScreen({ message, onOpenAdmin, state }: ProcessingScre
       data-state={state ?? 'unknown'}
       data-testid="processing-screen"
     >
+      <img
+        className="processing-background"
+        src={LOCAL_FIXTURES.processingBackground}
+        alt=""
+        aria-hidden="true"
+        draggable="false"
+      />
+      <div className="processing-scrim" aria-hidden="true" />
       {onOpenAdmin ? (
         <button className="operator-access" onClick={onOpenAdmin} aria-label="Admin" title="Admin">
           <LockKey aria-hidden="true" weight="bold" />

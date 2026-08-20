@@ -36,7 +36,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...props}
     >
       {icon ? <span className="button__icon">{icon}</span> : null}
-      <span className="button__label">{loading ? 'Please wait' : children}</span>
+      <span className="button__label">{children}</span>
+      {loading ? <span className="sr-only">Loading</span> : null}
       {iconAfter ? <span className="button__icon">{iconAfter}</span> : null}
     </button>
   );

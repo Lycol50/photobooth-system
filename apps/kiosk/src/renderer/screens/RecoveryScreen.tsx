@@ -27,20 +27,20 @@ type RecoveryScreenProps = {
 
 const COPY = {
   camera: {
-    title: 'OPTICAL SUBSYSTEM DISCONNECTED',
-    body: 'Verify physical camera connection, then authenticate operator bypass to restart session.',
+    title: 'Camera needs attention',
+    body: 'An operator needs to check the camera connection before you can continue.',
     action: 'Restart session',
     icon: VideoCameraSlash,
   },
   upload: {
-    title: 'CLOUD SYNC DISPATCH FAILED',
-    body: 'Composite photo is safely persisted to local NVMe storage. Re-attempt secure sync.',
+    title: 'Upload did not finish',
+    body: 'Your photo is saved on this booth. You can try uploading again or finish without cloud upload.',
     action: 'Retry upload',
     icon: CloudSlash,
   },
   interrupted: {
-    title: 'RECONCILING BOOTH STATE',
-    body: 'Verifying atomic disk journal to safely restore session progress.',
+    title: 'Restoring your session',
+    body: 'Please wait while the booth checks your saved progress.',
     action: null,
     icon: SpinnerGap,
   },

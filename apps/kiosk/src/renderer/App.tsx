@@ -699,7 +699,7 @@ export function App() {
       return (
         <main className="screen screen--loading" data-testid="renderer-loading" role="status">
           <SpinnerGap aria-hidden="true" weight="bold" />
-          <span>INITIALIZING M.A.T. PHOTO-SYS</span>
+          <span>Starting photobooth…</span>
         </main>
       );
     }
