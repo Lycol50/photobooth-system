@@ -1,31 +1,41 @@
-:root {
-  color-scheme: light;
+/* ==========================================================================
+   URBAN LOFT - DARK MODERN INDUSTRIAL DESIGN SYSTEM (PUBLIC PORTAL)
+   Palette: #464646 (Charcoal Canvas) | #000000 (Obsidian Surface)
+            #9C9A9A (Concrete Borders) | #A35E47 (Terracotta Accent)
+   ========================================================================== */
 
-  /* M.A.T. 4-Stripe Physical Palette */
-  --color-primary: #547a95;     /* Steel Slate Blue - Primary Brand & Key Action */
-  --color-secondary: #e8edf2;   /* Ice Mist Substrate - Secondary Canvas */
-  --color-naval-slate: #283645; /* Deep Naval Slate - Structural Ink & Borders */
-  --color-brass-gold: #c3a76d;  /* Industrial Brass Gold - Highlight & Accent */
-  --color-maroon: #8c2121;      /* Deep Rust / Aviation Alert */
-  --color-olive: #3d7858;       /* Military Olive / Verified Status */
+:root {
+  color-scheme: dark;
+
+  /* Urban Loft Core Palette */
+  --color-primary: #A35E47;     /* Warm Terracotta Rust - Primary Action */
+  --color-secondary: #2E2E2E;   /* Deep Charcoal Surface Accent */
+  --color-steel: #9C9A9A;       /* Concrete Cement Gray - Borders & Hairlines */
+  --color-mint: #A35E47;        /* Terracotta Glow Accent */
+  --color-hover: #000000;       /* High-contrast Invert Hover */
+  --color-naval-slate: #1C1C1C; /* Recessed Panel Surface */
+  --color-brass-gold: #A35E47;  /* Terracotta Highlight */
+  --color-maroon: #C62828;      /* Industrial Safety Crimson Alert */
+  --color-olive: #3D7A5A;       /* Patina Sage Green - Verified / Success */
 
   /* Structural Inks & Paper Surfaces */
-  --color-ink: #283645;         /* Deep Naval Slate Carbon Ink */
-  --color-ink-pure: #111820;    /* Pure Deep Carbon for High Contrast */
-  --color-ink-muted: #556877;   /* Telemetry Muted Text */
-  --color-substrate: #e8edf2;   /* Secondary Substrate Canvas */
-  --color-surface: #ffffff;      /* Clean Paper Substrate */
-  --color-surface-tint: #dce4ec; /* Recessed Track / Inset Surface */
-  --color-canvas-white: #f5f8fa; /* High-value document substrate */
+  --color-ink: #FFFFFF;         /* Crisp White Text / Headings */
+  --color-ink-pure: #FFFFFF;    /* Pure White High Contrast */
+  --color-ink-muted: #9C9A9A;   /* Concrete Gray Muted Subtext */
+  --color-substrate: #464646;   /* Dark Charcoal Slate Canvas Background */
+  --color-surface: #000000;     /* Obsidian Pitch Black Card Substrate */
+  --color-surface-tint: #1C1C1C; /* Recessed Track Containers */
+  --color-canvas-white: #000000; /* Obsidian Black Document Substrate */
 
   /* Semantic System Mappings */
   --bg-primary: var(--color-substrate);
   --fg-primary: var(--color-ink-pure);
-  --border-rigid: 2px solid var(--color-ink);
-  --border-hairline: 1px solid var(--color-ink);
+  --border-rigid: 2px solid var(--color-steel);
+  --border-hairline: 1px solid rgba(156, 154, 154, 0.45);
+  --border-thick: 3px solid var(--color-steel);
   --accent-alert: var(--color-maroon);
   --accent-active: var(--color-primary);
-  --accent-highlight: var(--color-brass-gold);
+  --accent-highlight: var(--color-steel);
   --accent-status: var(--color-olive);
 
   /* Typographic Blueprint */
@@ -33,18 +43,18 @@
   --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Strict Rigid Geometry - Zero Radius Globally */
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-full: 0px;
+  /* Modern Industrial Geometry */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
 
-  /* Shadows Rejected */
-  --shadow-soft: none;
-  --shadow-card: none;
-  --shadow-glow: none;
+  /* Industrial Depth & Shadows */
+  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 12px 36px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 16px rgba(163, 94, 71, 0.35);
   --focus: var(--color-primary);
 }
 
@@ -52,7 +62,6 @@
 *::before,
 *::after {
   box-sizing: border-box;
-  border-radius: 0px !important;
 }
 
 html {
@@ -65,7 +74,7 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  color: var(--color-ink);
+  color: var(--color-ink-pure);
   background-color: var(--color-substrate);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -75,7 +84,6 @@ button,
 a,
 input {
   font: inherit;
-  border-radius: 0px !important;
 }
 
 button:focus-visible,
@@ -103,7 +111,7 @@ a:focus-visible {
   min-height: 80px;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 2px solid var(--color-ink);
+  border-bottom: 2px solid var(--color-steel);
   padding: 16px 0;
 }
 
@@ -120,9 +128,10 @@ a:focus-visible {
   width: 44px;
   height: 44px;
   place-items: center;
-  border: 2px solid var(--color-ink);
-  background: var(--color-ink);
-  color: var(--color-brass-gold);
+  border: 2px solid var(--color-steel);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-tint);
+  color: var(--color-primary);
 }
 
 .brand-text {
@@ -136,6 +145,7 @@ a:focus-visible {
   font-size: 20px;
   font-weight: 900;
   letter-spacing: -0.04em;
+  color: var(--color-ink);
 }
 
 .brand-text small {
@@ -152,14 +162,15 @@ a:focus-visible {
   font-weight: 700;
   letter-spacing: 0.08em;
   background: var(--color-surface);
-  border: 1.5px solid var(--color-ink);
+  border: 1.5px solid var(--color-steel);
+  border-radius: var(--radius-sm);
   padding: 6px 12px;
   color: var(--color-ink);
 }
 
 .site-footer {
   margin-top: auto;
-  border-top: 2px solid var(--color-ink);
+  border-top: 2px solid var(--color-steel);
   padding: 24px 0 36px;
   display: flex;
   flex-direction: column;
@@ -185,8 +196,10 @@ a:focus-visible {
 }
 
 .photo-stage {
-  border: 2px solid var(--color-ink);
+  border: var(--border-rigid);
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -197,7 +210,7 @@ a:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1.5px solid var(--color-ink);
+  border-bottom: 1.5px solid var(--color-steel);
   padding-bottom: 8px;
   font-family: var(--font-mono);
   font-size: 12px;
@@ -207,14 +220,15 @@ a:focus-visible {
 }
 
 .crosshair-icon {
-  color: var(--color-brass-gold);
+  color: var(--color-primary);
   font-weight: 900;
 }
 
 .photo-mat {
   position: relative;
-  background: #ffffff;
-  border: 2px solid var(--color-ink);
+  background: #000000;
+  border: 1.5px solid var(--color-steel);
+  border-radius: var(--radius-sm);
   padding: 8px;
   display: grid;
   place-items: center;
@@ -224,7 +238,8 @@ a:focus-visible {
   display: block;
   width: 100%;
   height: auto;
-  border: 1px solid var(--color-ink);
+  border: 1px solid var(--color-steel);
+  border-radius: 2px;
 }
 
 .mat-crosshair {
@@ -232,7 +247,7 @@ a:focus-visible {
   font-family: var(--font-mono);
   font-size: 16px;
   font-weight: 700;
-  color: var(--color-brass-gold);
+  color: var(--color-primary);
   pointer-events: none;
   z-index: 2;
 }
@@ -252,8 +267,10 @@ a:focus-visible {
 }
 
 .detail-panel {
-  border: 2px solid var(--color-ink);
+  border: var(--border-rigid);
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 32px 36px;
   display: flex;
   flex-direction: column;
@@ -284,6 +301,8 @@ a:focus-visible {
   line-height: 0.96;
   letter-spacing: -0.04em;
   text-transform: uppercase;
+  color: var(--color-ink);
+  margin: 0;
 }
 
 .lead-copy {
@@ -302,7 +321,8 @@ a:focus-visible {
 
 .primary-button {
   min-height: 56px;
-  border: 2px solid var(--color-ink);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-md);
   background: var(--color-primary);
   color: #ffffff;
   display: inline-flex;
@@ -317,11 +337,15 @@ a:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-decoration: none;
-  transition: background-color 100ms ease, color 100ms ease;
+  box-shadow: var(--shadow-soft);
+  transition: all 140ms ease;
 }
 
 .primary-button:hover:not(:disabled) {
-  background: #3e617a;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .primary-button:disabled {
@@ -331,9 +355,10 @@ a:focus-visible {
 
 .secondary-button {
   min-height: 48px;
-  border: 2px solid var(--color-ink);
-  background: var(--color-surface);
-  color: var(--color-ink);
+  border: 2px solid var(--color-steel);
+  border-radius: var(--radius-md);
+  background: var(--color-secondary);
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -346,10 +371,13 @@ a:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-decoration: none;
+  transition: all 140ms ease;
 }
 
 .secondary-button:hover {
-  background: var(--color-surface-tint);
+  background: var(--color-surface);
+  color: #ffffff;
+  border-color: #ffffff;
 }
 
 .compact-button {
@@ -373,6 +401,7 @@ a:focus-visible {
 
 .inline-error {
   border: 1px solid var(--color-maroon);
+  border-radius: var(--radius-sm);
   background: var(--color-maroon);
   color: #ffffff;
   padding: 10px 14px;
@@ -382,7 +411,8 @@ a:focus-visible {
 }
 
 .availability-note {
-  border: 2px solid var(--color-ink);
+  border: 2px solid var(--color-steel);
+  border-radius: var(--radius-md);
   background: var(--color-surface-tint);
   padding: 14px 18px;
   display: grid;
@@ -392,9 +422,10 @@ a:focus-visible {
 }
 
 .day-stamp {
-  border: 2px solid var(--color-ink);
-  background: var(--color-ink);
-  color: var(--color-brass-gold);
+  border: 2px solid var(--color-steel);
+  border-radius: var(--radius-sm);
+  background: #000000;
+  color: var(--color-primary);
   padding: 6px 10px;
   display: flex;
   flex-direction: column;
@@ -417,6 +448,7 @@ a:focus-visible {
   font-family: var(--font-body);
   font-size: 13px;
   color: var(--color-ink-muted);
+  margin: 0;
 }
 
 .availability-note strong {
@@ -432,8 +464,10 @@ a:focus-visible {
 }
 
 .error-card {
-  border: 2px solid var(--color-ink);
+  border: var(--border-rigid);
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 38px 44px;
   display: flex;
   flex-direction: column;
@@ -443,9 +477,10 @@ a:focus-visible {
 .error-symbol {
   width: 56px;
   height: 56px;
-  background: var(--color-ink);
+  background: var(--color-surface-tint);
   color: var(--color-maroon);
-  border: 2px solid var(--color-ink);
+  border: 2px solid var(--color-maroon);
+  border-radius: var(--radius-md);
   display: grid;
   place-items: center;
   margin-bottom: 6px;
@@ -457,6 +492,8 @@ a:focus-visible {
   font-weight: 900;
   letter-spacing: -0.03em;
   text-transform: uppercase;
+  color: var(--color-ink);
+  margin: 0;
 }
 
 .error-card p {
@@ -464,6 +501,7 @@ a:focus-visible {
   font-weight: 600;
   color: var(--color-ink-muted);
   line-height: 1.45;
+  margin: 0;
 }
 
 .muted-copy {
@@ -475,7 +513,8 @@ a:focus-visible {
 .skeleton-stage {
   min-height: 480px;
   background: var(--color-surface-tint);
-  border: 2px solid var(--color-ink);
+  border: 2px solid var(--color-steel);
+  border-radius: var(--radius-lg);
 }
 
 .skeleton-photo {
@@ -483,13 +522,15 @@ a:focus-visible {
   height: 100%;
   min-height: 420px;
   background: var(--color-surface);
-  border: 1px dashed var(--color-ink);
+  border: 1px dashed var(--color-steel);
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-line {
   height: 18px;
   background: var(--color-surface-tint);
-  border: 1px solid var(--color-ink);
+  border: 1px solid var(--color-steel);
+  border-radius: 2px;
   margin-top: 10px;
   width: 60%;
 }

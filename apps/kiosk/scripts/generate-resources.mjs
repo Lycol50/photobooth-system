@@ -65,24 +65,24 @@ const attractSvg = `
   <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
     <defs>
       <linearGradient id="wash" x1="0" y1="0" x2="1" y2="1">
-        <stop stop-color="#dbe8f8"/>
-        <stop offset=".52" stop-color="#edf3fb"/>
-        <stop offset="1" stop-color="#c8d9ed"/>
+        <stop stop-color="#03001c"/>
+        <stop offset=".52" stop-color="#301e67"/>
+        <stop offset="1" stop-color="#5b8fb9"/>
       </linearGradient>
       <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
     </defs>
     <rect width="1600" height="900" fill="url(#wash)"/>
-    <circle cx="250" cy="190" r="220" fill="#f8d7ae" opacity=".5" filter="url(#soft)"/>
-    <circle cx="1330" cy="210" r="250" fill="#9db9df" opacity=".5" filter="url(#soft)"/>
-    <path d="M0 680 Q260 490 510 690 T1020 680 T1600 650 V900 H0Z" fill="#5074a0" opacity=".42" filter="url(#soft)"/>
+    <circle cx="250" cy="190" r="220" fill="#b6eada" opacity=".35" filter="url(#soft)"/>
+    <circle cx="1330" cy="210" r="250" fill="#5b8fb9" opacity=".4" filter="url(#soft)"/>
+    <path d="M0 680 Q260 490 510 690 T1020 680 T1600 650 V900 H0Z" fill="#301e67" opacity=".42" filter="url(#soft)"/>
     <g opacity=".32">
-      <circle cx="170" cy="620" r="76" fill="#153b6f"/><path d="M40 900Q70 675 170 675T300 900Z" fill="#153b6f"/>
-      <circle cx="470" cy="590" r="86" fill="#6e4051"/><path d="M320 900Q350 650 470 650T620 900Z" fill="#6e4051"/>
-      <circle cx="785" cy="640" r="72" fill="#2d5b5b"/><path d="M660 900Q690 700 785 700T920 900Z" fill="#2d5b5b"/>
-      <circle cx="1120" cy="575" r="92" fill="#57456f"/><path d="M950 900Q985 645 1120 645T1290 900Z" fill="#57456f"/>
-      <circle cx="1440" cy="630" r="74" fill="#755131"/><path d="M1310 900Q1340 690 1440 690T1580 900Z" fill="#755131"/>
+      <circle cx="170" cy="620" r="76" fill="#03001c"/><path d="M40 900Q70 675 170 675T300 900Z" fill="#03001c"/>
+      <circle cx="470" cy="590" r="86" fill="#301e67"/><path d="M320 900Q350 650 470 650T620 900Z" fill="#301e67"/>
+      <circle cx="785" cy="640" r="72" fill="#5b8fb9"/><path d="M660 900Q690 700 785 700T920 900Z" fill="#5b8fb9"/>
+      <circle cx="1120" cy="575" r="92" fill="#03001c"/><path d="M950 900Q985 645 1120 645T1290 900Z" fill="#03001c"/>
+      <circle cx="1440" cy="630" r="74" fill="#301e67"/><path d="M1310 900Q1340 690 1440 690T1580 900Z" fill="#301e67"/>
     </g>
-    <rect width="1600" height="900" fill="#f7f9ff" opacity=".2"/>
+    <rect width="1600" height="900" fill="#b6eada" opacity=".12"/>
   </svg>`;
 
 const recoverySvg = `

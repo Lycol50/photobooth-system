@@ -1,34 +1,42 @@
-/* M.A.T. PHOTOBOOTH - INDUSTRIAL NEO-BRUTALIST DESIGN SYSTEM */
-:root {
-  color-scheme: light;
+/* ==========================================================================
+   URBAN LOFT - DARK MODERN INDUSTRIAL DESIGN SYSTEM
+   Palette: #464646 (Charcoal Canvas) | #000000 (Obsidian Surface)
+            #9C9A9A (Concrete Borders) | #A35E47 (Terracotta Accent)
+   ========================================================================== */
 
-  /* M.A.T. 4-Stripe Physical Palette */
-  --color-primary: #547a95;     /* Steel Slate Blue - Primary Brand & Key Actions */
-  --color-secondary: #e8edf2;   /* Ice Mist Substrate - Secondary Canvas */
-  --color-naval-slate: #283645; /* Deep Naval Slate - Structural Ink & Borders */
-  --color-brass-gold: #c3a76d;  /* Industrial Brass Gold - Highlight & Crosshairs */
-  --color-maroon: #8c2121;      /* Deep Rust / Aviation Alert */
-  --color-olive: #3d7858;       /* Military Olive / Verified Status */
+:root {
+  color-scheme: dark;
+
+  /* Urban Loft Core Palette */
+  --color-primary: #A35E47;     /* Warm Terracotta Rust - Primary Action & Key CTAs */
+  --color-secondary: #2E2E2E;   /* Deep Charcoal Surface Accent */
+  --color-steel: #9C9A9A;       /* Concrete Cement Gray - Structural Hairlines & Borders */
+  --color-mint: #A35E47;        /* Terracotta Glow Accent */
+  --color-hover: #000000;       /* High-contrast Invert Hover */
+  --color-naval-slate: #1C1C1C; /* Recessed Panel Surface */
+  --color-brass-gold: #A35E47;  /* Terracotta Highlight */
+  --color-maroon: #C62828;      /* Industrial Safety Crimson Alert */
+  --color-olive: #3D7A5A;       /* Patina Sage Green - Verified / Success */
 
   /* Structural Inks & Paper Surfaces */
-  --color-ink: #283645;         /* Deep Naval Slate Carbon Ink */
-  --color-ink-pure: #111111;    /* Pure Deep Carbon for High Contrast */
-  --color-ink-muted: #556877;   /* Telemetry Muted Text */
-  --color-substrate: #e8edf2;   /* Secondary Substrate Canvas */
-  --color-surface: #ffffff;      /* Clean Paper Substrate */
-  --color-surface-tint: #dce4ec; /* Recessed Track / Inset Surface */
-  --color-canvas-white: #f5f8fa; /* High-value document substrate */
+  --color-ink: #FFFFFF;         /* Crisp White Text / Headings */
+  --color-ink-pure: #FFFFFF;    /* Pure White High Contrast */
+  --color-ink-muted: #9C9A9A;   /* Concrete Gray Muted Subtext */
+  --color-substrate: #464646;   /* Dark Charcoal Slate Canvas Background */
+  --color-surface: #000000;     /* Obsidian Pitch Black Card Substrate */
+  --color-surface-tint: #1C1C1C; /* Recessed Track / Secondary Containers */
+  --color-canvas-white: #000000; /* Obsidian Black Document Substrate */
 
   /* Semantic System Mappings */
   --bg-primary: var(--color-substrate);
   --fg-primary: var(--color-ink-pure);
-  --border-rigid: 2px solid var(--color-ink);
-  --border-hairline: 1px solid var(--color-ink);
-  --border-thick: 3px solid var(--color-ink);
+  --border-rigid: 2px solid var(--color-steel);
+  --border-hairline: 1px solid rgba(156, 154, 154, 0.45);
+  --border-thick: 3px solid var(--color-steel);
   --accent-primary: var(--color-primary);
   --accent-alert: var(--color-maroon);
   --accent-active: var(--color-primary);
-  --accent-highlight: var(--color-brass-gold);
+  --accent-highlight: var(--color-steel);
   --accent-status: var(--color-olive);
 
   /* Typographic Blueprint */
@@ -36,18 +44,18 @@
   --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Strict Rigid Geometry - Zero Radius Globally */
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-full: 0px;
+  /* Modern Industrial Geometry */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
 
-  /* Shadows Rejected */
-  --shadow-soft: none;
-  --shadow-card: none;
-  --shadow-glow: none;
+  /* Industrial Depth & Shadows */
+  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 12px 36px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 16px rgba(163, 94, 71, 0.35);
   --focus: var(--color-primary);
 }
 
@@ -55,7 +63,6 @@
 *::before,
 *::after {
   box-sizing: border-box;
-  border-radius: 0px !important;
 }
 
 html,
@@ -69,7 +76,7 @@ body,
   padding: 0;
   overflow: hidden;
   background-color: var(--color-substrate);
-  color: var(--color-ink);
+  color: var(--color-ink-pure);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   user-select: none;
@@ -80,7 +87,6 @@ input,
 select,
 textarea {
   font: inherit;
-  border-radius: 0px !important;
 }
 
 button:focus-visible,
@@ -128,7 +134,9 @@ select:focus-visible {
 
 .app-loading__panel {
   border: var(--border-thick);
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 40px 60px;
   display: flex;
   flex-direction: column;
@@ -141,6 +149,7 @@ select:focus-visible {
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.1em;
+  color: var(--color-ink);
   margin: 0;
 }
 
@@ -149,6 +158,7 @@ select:focus-visible {
   height: 32px;
   border: 3px solid var(--color-surface-tint);
   border-top-color: var(--color-primary);
+  border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
@@ -222,6 +232,7 @@ select:focus-visible {
   font-weight: 900;
   font-size: 18px;
   letter-spacing: -0.04em;
+  color: var(--color-ink);
 }
 
 .brand-mark__sub {
@@ -250,6 +261,7 @@ select:focus-visible {
   min-height: 40px;
   padding: 0 16px;
   border: var(--border-rigid);
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-ink-pure);
   font-family: var(--font-display);
@@ -259,10 +271,15 @@ select:focus-visible {
   letter-spacing: 0.05em;
   cursor: pointer;
   z-index: 100;
+  box-shadow: var(--shadow-soft);
+  transition: all 140ms ease;
 }
 
 .operator-access:hover {
-  background: var(--color-surface-tint);
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .operator-access:active {
@@ -283,7 +300,7 @@ select:focus-visible {
 }
 
 /* ==========================================================================
-   BUTTONS (0PX RADIUS, TACTILE MECHANICAL FEEL, FULL CLASS COMPATIBILITY)
+   BUTTONS (MODERN INDUSTRIAL TACTILE + INVERTED HOVER)
    ========================================================================== */
 
 .button,
@@ -299,9 +316,10 @@ select:focus-visible {
   font-size: 15px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  border-radius: var(--radius-md);
   border: var(--border-rigid);
   cursor: pointer;
-  transition: background-color 100ms ease, color 100ms ease;
+  transition: all 140ms ease;
   box-sizing: border-box;
 }
 
@@ -320,33 +338,44 @@ select:focus-visible {
 .btn--primary {
   background-color: var(--color-primary);
   color: #ffffff;
+  border: 2px solid var(--color-primary);
+  box-shadow: var(--shadow-soft);
 }
 
 .button--primary:hover:not(:disabled),
 .btn--primary:hover:not(:disabled) {
-  background-color: #3e617a;
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .button--secondary,
 .btn--secondary {
-  background-color: var(--color-surface);
-  color: var(--color-ink);
+  background-color: var(--color-secondary);
+  color: #ffffff;
+  border: 2px solid var(--color-steel);
 }
 
 .button--secondary:hover:not(:disabled),
 .btn--secondary:hover:not(:disabled) {
-  background-color: var(--color-surface-tint);
+  background-color: var(--color-surface);
+  color: #ffffff;
+  border-color: #ffffff;
 }
 
 .button--danger,
 .btn--danger {
   background-color: var(--color-maroon);
   color: #ffffff;
+  border-color: var(--color-maroon);
 }
 
 .button--danger:hover:not(:disabled),
 .btn--danger:hover:not(:disabled) {
-  background-color: #701a1a;
+  background-color: var(--color-surface);
+  color: var(--color-maroon);
+  border-color: var(--color-maroon);
 }
 
 .button--wide,
@@ -361,9 +390,9 @@ select:focus-visible {
 }
 
 .button--quiet:hover:not(:disabled) {
-  background: var(--color-surface-tint);
-  border-color: var(--color-ink);
-  color: var(--color-ink);
+  background: var(--color-secondary);
+  border-color: var(--color-steel);
+  color: #ffffff;
 }
 
 .button__icon {
@@ -389,6 +418,7 @@ select:focus-visible {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  background-color: var(--color-substrate);
 }
 
 .attract-background {
@@ -398,16 +428,14 @@ select:focus-visible {
   height: 100%;
   object-fit: cover;
   z-index: 1;
+  opacity: 0.85;
+  filter: grayscale(20%) contrast(105%);
 }
 
 .attract-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(40, 54, 69, 0.12),
-    rgba(40, 54, 69, 0.38)
-  );
+  background: radial-gradient(circle at center, rgba(30, 30, 30, 0.45) 0%, rgba(0, 0, 0, 0.8) 100%);
   z-index: 2;
 }
 
@@ -417,13 +445,15 @@ select:focus-visible {
   max-width: 760px;
   width: 90%;
   border: var(--border-thick);
+  border-radius: var(--radius-xl);
   background: var(--color-surface);
-  padding: 36px 48px;
+  box-shadow: var(--shadow-card);
+  padding: 40px 52px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 18px;
+  gap: 20px;
 }
 
 .attract-card__brand-header {
@@ -433,7 +463,7 @@ select:focus-visible {
 }
 
 .attract-card__motif {
-  font-size: 28px;
+  font-size: 32px;
   color: var(--color-brass-gold);
 }
 
@@ -445,6 +475,7 @@ select:focus-visible {
   letter-spacing: -0.04em;
   margin: 0;
   text-transform: uppercase;
+  color: var(--color-ink);
 }
 
 .attract-card__subtitle {
@@ -470,6 +501,7 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
   padding: 8px 16px;
   font-family: var(--font-mono);
@@ -491,7 +523,7 @@ select:focus-visible {
 }
 
 /* ==========================================================================
-   CAPTURE SCREEN & VIEWFINDER (FRAMELESS TIMER & CLEAN FRAME TAG)
+   CAPTURE SCREEN & VIEWFINDER
    ========================================================================== */
 
 .screen--capture {
@@ -503,6 +535,7 @@ select:focus-visible {
   padding: 20px 32px;
   box-sizing: border-box;
   overflow: hidden;
+  background-color: var(--color-substrate);
 }
 
 .capture-header {
@@ -524,7 +557,9 @@ select:focus-visible {
   font-weight: 700;
   letter-spacing: 0.08em;
   border: var(--border-hairline);
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
+  color: var(--color-ink);
   padding: 6px 14px;
 }
 
@@ -537,12 +572,14 @@ select:focus-visible {
   width: 32px;
   height: 8px;
   border: var(--border-hairline);
+  border-radius: 2px;
   background: var(--color-surface-tint);
 }
 
 .progress-stepper__bar.is-active {
   background: var(--color-primary);
-  border-color: var(--color-ink);
+  border-color: var(--color-steel);
+  box-shadow: var(--shadow-glow);
 }
 
 .camera-ready-badge {
@@ -550,12 +587,13 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   border: var(--border-hairline);
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   padding: 6px 14px;
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-ink-muted);
+  color: var(--color-olive);
 }
 
 .viewfinder {
@@ -564,10 +602,12 @@ select:focus-visible {
   height: 100%;
   min-height: 0;
   border: var(--border-thick);
+  border-radius: var(--radius-lg);
   background: #000000;
   overflow: hidden;
   display: grid;
   place-items: center;
+  box-shadow: var(--shadow-card);
 }
 
 .viewfinder__live,
@@ -593,21 +633,23 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(0, 0, 0, 0.85);
   color: var(--color-ink);
   border: var(--border-hairline);
-  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  padding: 8px 18px;
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 14px;
   z-index: 10;
+  backdrop-filter: blur(8px);
 }
 
 .viewfinder__pose-copy svg {
   color: var(--color-primary);
 }
 
-/* Frameless Countdown Number */
+/* Countdown Number */
 .countdown-card {
   position: absolute;
   top: 50%;
@@ -631,7 +673,7 @@ select:focus-visible {
   font-weight: 900;
   line-height: 1;
   color: #ffffff;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85), 0 0 24px rgba(40, 54, 69, 0.9);
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.95), 0 0 35px rgba(163, 94, 71, 0.85);
 }
 
 .shutter-flash {
@@ -644,7 +686,7 @@ select:focus-visible {
 }
 
 /* ==========================================================================
-   REVIEW SCREEN & AUTHENTIC PHOTO STRIP PREVIEW
+   REVIEW SCREEN & PHOTO STRIP PREVIEW
    ========================================================================== */
 
 .screen--review {
@@ -685,6 +727,8 @@ select:focus-visible {
   max-height: 100%;
   background: #ffffff;
   border: var(--border-rigid);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
   padding: 8px 10px;
   box-sizing: border-box;
   display: flex;
@@ -700,7 +744,8 @@ select:focus-visible {
 .photostrip-preview__sprocket {
   width: 10px;
   height: 4px;
-  background: var(--color-ink);
+  background: #000000;
+  border-radius: 1px;
 }
 
 .photostrip-preview__header {
@@ -708,7 +753,7 @@ select:focus-visible {
   align-items: center;
   justify-content: space-between;
   padding: 4px 2px 6px;
-  border-bottom: 2px solid var(--color-ink);
+  border-bottom: 2px solid #000000;
   margin-bottom: 6px;
 }
 
@@ -720,7 +765,7 @@ select:focus-visible {
   font-size: 11px;
   font-weight: 900;
   letter-spacing: -0.02em;
-  color: var(--color-ink);
+  color: #000000;
 }
 
 .photostrip-preview__frames {
@@ -734,8 +779,8 @@ select:focus-visible {
 
 .photo-slot {
   position: relative;
-  border: 1.5px solid var(--color-ink);
-  background: #ffffff;
+  border: 1.5px solid #000000;
+  background: #000000;
   padding: 0;
   overflow: hidden;
   display: flex;
@@ -769,7 +814,7 @@ select:focus-visible {
   align-items: center;
   justify-content: space-between;
   padding: 5px 2px 3px;
-  border-top: 2px solid var(--color-ink);
+  border-top: 2px solid #000000;
   margin-top: 5px;
 }
 
@@ -777,7 +822,7 @@ select:focus-visible {
   font-family: var(--font-display);
   font-size: 9px;
   font-weight: 800;
-  color: var(--color-ink);
+  color: #000000;
   letter-spacing: 0.04em;
 }
 
@@ -820,6 +865,7 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   border: var(--border-hairline);
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   padding: 5px 12px;
   font-family: var(--font-body);
@@ -836,7 +882,7 @@ select:focus-visible {
 }
 
 /* ==========================================================================
-   PROCESSING SCREEN (BLACK ICONS & TEXT AS REQUESTED)
+   PROCESSING SCREEN
    ========================================================================== */
 
 .screen--processing {
@@ -849,6 +895,7 @@ select:focus-visible {
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
+  background-color: var(--color-substrate);
 }
 
 .processing-background {
@@ -858,16 +905,14 @@ select:focus-visible {
   height: 100%;
   object-fit: cover;
   z-index: 1;
+  opacity: 0.85;
+  filter: grayscale(20%) contrast(105%);
 }
 
 .processing-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(40, 54, 69, 0.12),
-    rgba(40, 54, 69, 0.38)
-  );
+  background: radial-gradient(circle at center, rgba(30, 30, 30, 0.45) 0%, rgba(0, 0, 0, 0.8) 100%);
   z-index: 2;
 }
 
@@ -876,7 +921,9 @@ select:focus-visible {
   z-index: 10;
   width: min(680px, 90vw);
   border: var(--border-thick);
+  border-radius: var(--radius-xl);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 40px 48px;
   display: flex;
   flex-direction: column;
@@ -886,7 +933,7 @@ select:focus-visible {
 }
 
 .processing-card__motif {
-  color: #111111;
+  color: var(--color-primary);
   font-size: 44px;
   animation: spin 1.2s linear infinite;
 }
@@ -898,13 +945,13 @@ select:focus-visible {
   letter-spacing: -0.03em;
   margin: 0;
   text-transform: uppercase;
-  color: #111111;
+  color: var(--color-ink);
 }
 
 .processing-card p {
   font-size: 15px;
   font-weight: 600;
-  color: #111111;
+  color: var(--color-ink-muted);
   max-width: 480px;
   margin: 0;
 }
@@ -925,22 +972,27 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
   padding: 14px 10px;
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
-  color: #111111;
+  color: var(--color-ink-muted);
+  transition: all 140ms ease;
 }
 
 .processing-steps li.is-active {
   background: var(--color-primary);
   color: #ffffff;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .processing-steps li.is-complete {
   background: var(--color-surface);
-  color: #111111;
+  color: var(--color-olive);
+  border-color: var(--color-olive);
 }
 
 .processing-steps__icon {
@@ -948,7 +1000,7 @@ select:focus-visible {
 }
 
 /* ==========================================================================
-   FINAL QR SCREEN & DATA PLATE (SPLIT VIEWPORT FIT)
+   FINAL QR SCREEN & DATA PLATE
    ========================================================================== */
 
 .screen--final {
@@ -963,6 +1015,7 @@ select:focus-visible {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  background-color: var(--color-substrate);
 }
 
 .final-result {
@@ -979,7 +1032,9 @@ select:focus-visible {
 .final-result__frame {
   position: relative;
   border: var(--border-thick);
-  background: #ffffff;
+  border-radius: var(--radius-lg);
+  background: #000000;
+  box-shadow: var(--shadow-card);
   padding: 12px;
   height: 100%;
   max-height: calc(100vh - 48px);
@@ -998,12 +1053,15 @@ select:focus-visible {
   height: auto;
   object-fit: contain;
   display: block;
-  border: 1px solid var(--color-ink);
+  border: 1px solid var(--color-steel);
+  border-radius: var(--radius-sm);
 }
 
 .qr-panel {
   border: var(--border-thick);
+  border-radius: var(--radius-xl);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 28px 32px;
   display: flex;
   flex-direction: column;
@@ -1020,6 +1078,7 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   border: var(--border-hairline);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
   padding: 4px 12px;
   font-family: var(--font-mono);
@@ -1035,6 +1094,7 @@ select:focus-visible {
   letter-spacing: -0.03em;
   margin: 0;
   text-transform: uppercase;
+  color: var(--color-ink);
 }
 
 .qr-panel__copy p {
@@ -1048,6 +1108,7 @@ select:focus-visible {
 .qr-panel__code {
   position: relative;
   border: var(--border-thick);
+  border-radius: var(--radius-md);
   background: #ffffff;
   padding: 12px;
   display: grid;
@@ -1089,6 +1150,7 @@ select:focus-visible {
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
+  background-color: var(--color-substrate);
 }
 
 .recovery-art {
@@ -1102,12 +1164,14 @@ select:focus-visible {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0.85;
+  filter: grayscale(20%) contrast(105%);
 }
 
 .recovery-art__fade {
   position: absolute;
   inset: 0;
-  background: rgba(232, 237, 242, 0.88);
+  background: radial-gradient(circle at center, rgba(30, 30, 30, 0.45) 0%, rgba(0, 0, 0, 0.85) 100%);
 }
 
 .recovery-content {
@@ -1123,7 +1187,9 @@ select:focus-visible {
 
 .recovery-card {
   border: var(--border-thick);
+  border-radius: var(--radius-xl);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 36px 44px;
   display: flex;
   flex-direction: column;
@@ -1139,6 +1205,7 @@ select:focus-visible {
   background: var(--color-maroon);
   color: #ffffff;
   border: var(--border-rigid);
+  border-radius: var(--radius-md);
   display: grid;
   place-items: center;
   font-size: 24px;
@@ -1155,6 +1222,7 @@ select:focus-visible {
   letter-spacing: -0.03em;
   margin: 0;
   text-transform: uppercase;
+  color: var(--color-ink);
 }
 
 .recovery-card p {
@@ -1180,19 +1248,22 @@ select:focus-visible {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(40, 54, 69, 0.75);
+  background: rgba(0, 0, 0, 0.82);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 24px;
+  backdrop-filter: blur(6px);
 }
 
 .passcode-dialog,
 .camera-modal {
   position: relative;
   border: var(--border-thick);
+  border-radius: var(--radius-xl);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 36px 44px;
   width: min(500px, 92vw);
   display: flex;
@@ -1216,8 +1287,18 @@ select:focus-visible {
   display: grid;
   place-items: center;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
+  color: var(--color-ink);
   cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.passcode-dialog__close:hover,
+.camera-modal__close:hover {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .passcode-dialog__header {
@@ -1229,8 +1310,10 @@ select:focus-visible {
 .passcode-dialog__motif {
   width: 44px;
   height: 44px;
-  background: var(--color-ink);
-  color: var(--color-brass-gold);
+  background: var(--color-surface-tint);
+  color: var(--color-primary);
+  border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
   font-size: 22px;
@@ -1245,6 +1328,7 @@ select:focus-visible {
   letter-spacing: -0.03em;
   margin: 0;
   text-transform: uppercase;
+  color: var(--color-ink);
 }
 
 .passcode-dialog p {
@@ -1265,6 +1349,7 @@ select:focus-visible {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--color-ink);
 }
 
 .password-field {
@@ -1279,6 +1364,7 @@ select:focus-visible {
   width: 100%;
   min-height: 48px;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
   padding: 0 14px;
   font-family: var(--font-mono);
@@ -1298,11 +1384,17 @@ select:focus-visible {
   border: none;
   border-left: var(--border-rigid);
   background: transparent;
+  color: var(--color-ink-muted);
   cursor: pointer;
+}
+
+.password-field__toggle:hover {
+  color: var(--color-primary);
 }
 
 .form-error {
   border: 1px solid var(--color-maroon);
+  border-radius: var(--radius-sm);
   background: var(--color-maroon);
   color: #ffffff;
   padding: 8px 12px;
@@ -1320,7 +1412,7 @@ select:focus-visible {
 }
 
 /* ==========================================================================
-   ADMIN OPERATOR PANEL & ALIGNED FORMS
+   ADMIN OPERATOR PANEL & FORMS
    ========================================================================== */
 
 .admin-shell {
@@ -1357,6 +1449,7 @@ select:focus-visible {
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 900;
+  color: var(--color-ink);
 }
 
 .admin-nav__title span {
@@ -1378,18 +1471,28 @@ select:focus-visible {
   gap: 10px;
   padding: 12px 14px;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
+  color: var(--color-ink-muted);
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 12px;
   text-transform: uppercase;
   cursor: pointer;
   text-align: left;
+  transition: all 120ms ease;
+}
+
+.admin-nav nav button:hover:not(.is-active) {
+  background: #252525;
+  color: #ffffff;
 }
 
 .admin-nav nav button.is-active {
   background: var(--color-primary);
   color: #ffffff;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .admin-nav__exit {
@@ -1432,6 +1535,7 @@ select:focus-visible {
   margin: 0;
   letter-spacing: -0.03em;
   text-transform: uppercase;
+  color: var(--color-ink);
 }
 
 .admin-page-header p {
@@ -1461,7 +1565,9 @@ select:focus-visible {
 
 .frame-stage-wrapper {
   border: var(--border-thick);
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 16px;
   display: flex;
   align-items: center;
@@ -1482,6 +1588,7 @@ select:focus-visible {
   max-width: 640px;
   background: var(--color-surface-tint);
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -1496,8 +1603,8 @@ select:focus-visible {
 }
 
 .frame-slot {
-  border: 2px solid var(--color-brass-gold);
-  background: rgba(84, 122, 149, 0.4);
+  border: 2px solid var(--color-primary);
+  background: rgba(163, 94, 71, 0.25);
   cursor: move;
   z-index: 5;
 }
@@ -1523,17 +1630,20 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(40, 54, 69, 0.9);
+  background: rgba(0, 0, 0, 0.9);
   color: #ffffff;
   padding: 2px 6px;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
+  border-radius: 2px;
 }
 
 .slot-inspector {
   border: var(--border-thick);
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -1542,6 +1652,7 @@ select:focus-visible {
 
 .slot-inspector__group {
   border: var(--border-hairline);
+  border-radius: var(--radius-sm);
   padding: 12px 14px;
   margin: 0;
   display: flex;
@@ -1571,16 +1682,20 @@ select:focus-visible {
   gap: 4px;
   padding: 10px 6px;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
+  color: #ffffff;
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
+  transition: all 120ms ease;
 }
 
 .preset-btn:hover {
-  background: var(--color-primary);
-  color: #ffffff;
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .slot-tabs {
@@ -1592,16 +1707,20 @@ select:focus-visible {
 .slot-tabs button {
   height: 38px;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
+  color: var(--color-ink-muted);
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  transition: all 120ms ease;
 }
 
 .slot-tabs button.is-active {
   background: var(--color-primary);
   color: #ffffff;
+  border-color: var(--color-primary);
 }
 
 .coordinate-grid {
@@ -1617,16 +1736,19 @@ select:focus-visible {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
+  color: var(--color-ink);
 }
 
 .coordinate-grid input {
   height: 38px;
   padding: 0 10px;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
   font-family: var(--font-mono);
   font-size: 14px;
   font-weight: 700;
+  color: var(--color-ink);
   width: 100%;
 }
 
@@ -1636,13 +1758,15 @@ select:focus-visible {
   gap: 10px;
   padding: 8px;
   border: var(--border-hairline);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
   cursor: pointer;
+  transition: all 120ms ease;
 }
 
 .crop-option.is-selected {
   border-color: var(--color-primary);
-  background: rgba(84, 122, 149, 0.15);
+  background: rgba(163, 94, 71, 0.2);
 }
 
 .crop-option span {
@@ -1655,6 +1779,7 @@ select:focus-visible {
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 800;
+  color: var(--color-ink);
 }
 
 .crop-option small {
@@ -1662,7 +1787,7 @@ select:focus-visible {
   color: var(--color-ink-muted);
 }
 
-/* Settings & Telemetry Sections */
+/* Settings Sections */
 .settings-scroll {
   display: flex;
   flex-direction: column;
@@ -1672,6 +1797,7 @@ select:focus-visible {
 .settings-banner {
   padding: 12px 16px;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
@@ -1680,17 +1806,21 @@ select:focus-visible {
 
 .settings-banner--success {
   background: var(--color-olive);
+  border-color: var(--color-olive);
   color: #ffffff;
 }
 
 .settings-banner--error {
   background: var(--color-maroon);
+  border-color: var(--color-maroon);
   color: #ffffff;
 }
 
 .settings-section {
   border: var(--border-thick);
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   padding: 24px 28px;
   display: flex;
   flex-direction: column;
@@ -1704,6 +1834,7 @@ select:focus-visible {
   letter-spacing: -0.03em;
   margin: 0;
   text-transform: uppercase;
+  color: var(--color-ink);
 }
 
 .settings-section__heading p {
@@ -1721,6 +1852,7 @@ select:focus-visible {
 
 .health-card {
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
   padding: 14px 16px;
   display: flex;
@@ -1732,6 +1864,7 @@ select:focus-visible {
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 800;
+  color: var(--color-ink);
 }
 
 .health-state {
@@ -1740,6 +1873,7 @@ select:focus-visible {
   font-weight: 700;
   padding: 2px 6px;
   border: var(--border-hairline);
+  border-radius: 2px;
   margin-left: 6px;
 }
 
@@ -1750,8 +1884,8 @@ select:focus-visible {
 
 .health-state--degraded,
 .health-state--unavailable {
-  background: var(--color-brass-gold);
-  color: #111111;
+  background: var(--color-primary);
+  color: #ffffff;
 }
 
 .camera-settings-card {
@@ -1759,6 +1893,7 @@ select:focus-visible {
   align-items: center;
   justify-content: space-between;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
   padding: 16px 20px;
 }
@@ -1770,6 +1905,7 @@ select:focus-visible {
   background: var(--color-primary);
   color: #ffffff;
   padding: 4px 10px;
+  border-radius: 2px;
 }
 
 .settings-card {
@@ -1786,16 +1922,19 @@ select:focus-visible {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
+  color: var(--color-ink);
 }
 
 .settings-card input {
   height: 44px;
   padding: 0 14px;
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
   font-family: var(--font-mono);
   font-size: 14px;
   font-weight: 600;
+  color: var(--color-ink);
   width: 100%;
 }
 
@@ -1820,6 +1959,7 @@ select:focus-visible {
   padding: 10px 14px;
   background: var(--color-surface-tint);
   border: var(--border-hairline);
+  border-radius: var(--radius-sm);
 }
 
 .retention-values {
@@ -1830,6 +1970,7 @@ select:focus-visible {
 
 .retention-values div {
   border: var(--border-rigid);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-tint);
   padding: 12px 16px;
   display: flex;
