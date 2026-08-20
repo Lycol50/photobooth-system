@@ -63,7 +63,7 @@ M.A.T. Photobooth uses **Supabase** for secure, time-limited photo delivery. You
 From the repository root, link your project and apply the migrations:
 ```powershell
 # Link to your Supabase project (enter your database password when prompted)
-pnpm exec supabase link --project-ref <your-project-id>
+pnpm exec supabase link --project-ref <your-project-id> --workdir supabase
 
 # Push migrations to the database
 pnpm exec supabase db push --workdir supabase
