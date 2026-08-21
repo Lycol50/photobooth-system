@@ -112,6 +112,7 @@ export class BoothWorkflow {
       ? (assets.find((asset) => asset.id === session.collageAssetId) ?? null)
       : null;
     const qrImageUrl = this.qrBySession.get(session.id) ?? null;
+    const activeFrame = this.repository.getActiveFrame();
     return {
       screen: screenFor(session.state, qrImageUrl !== null),
       state: session.state,
@@ -126,6 +127,7 @@ export class BoothWorkflow {
       media: {
         captureUrls: captures.map((asset) => mediaUrl(asset.id)),
         collageUrl: collage ? mediaUrl(collage.id) : null,
+        frame: activeFrame ? this.frameService.toSummary(activeFrame) : null,
         qrImageUrl,
       },
       controls: {

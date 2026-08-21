@@ -22,6 +22,9 @@ describe('shared boundary schemas', () => {
     expect(FrameLayoutSchema.parse(slots)).toHaveLength(3);
     expect(() => FrameLayoutSchema.parse([...slots.slice(0, 2), slots[0]])).toThrow();
     expect(() => FrameLayoutSchema.parse([{ ...slots[0], x: 0.9 }, ...slots.slice(1)])).toThrow();
+    expect(() =>
+      FrameLayoutSchema.parse([...slots.slice(0, 2), { ...slots[2], slotIndex: 4 }]),
+    ).toThrow();
   });
 
   it('allows only expected HTTPS Google Forms hosts', () => {

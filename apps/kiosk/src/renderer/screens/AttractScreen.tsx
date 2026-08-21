@@ -67,12 +67,14 @@ export function AttractScreen({
         </div>
 
         <h1 id="attract-title">M.A.T. PHOTOBOOTH</h1>
-        <p className="attract-card__subtitle">EVENT PHOTOBOOTH</p>
-        <p className="attract-card__lead">Take four photos, get a collage, and download it with a QR code.</p>
+        <p className="attract-card__subtitle">MINISTRY FAIR</p>
+        <p className="attract-card__lead">
+          Take three photos, get a collage, and download it with a QR code.
+        </p>
 
         <p className="attract-status" role="status">
           <CheckCircle aria-hidden="true" weight="bold" />
-          <span>4 photos · collage · QR download</span>
+          <span>3 photos · collage · QR download</span>
         </p>
 
         <Button

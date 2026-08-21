@@ -188,7 +188,7 @@ function createQueuedSession(store: TestStore, now: number): StoredUploadJob {
   const sessionId = randomUUID();
   store.repository.createSession(sessionId, now);
   store.database.raw
-    .prepare("UPDATE sessions SET state = 'processing', capture_count = 4 WHERE id = ?")
+    .prepare("UPDATE sessions SET state = 'processing', capture_count = 3 WHERE id = ?")
     .run(sessionId);
   const stored = store.vault.write('completed', Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
   return store.repository.saveCollageAndQueue(

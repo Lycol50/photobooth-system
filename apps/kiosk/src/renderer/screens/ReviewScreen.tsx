@@ -2,18 +2,19 @@ import {
   ArrowCounterClockwiseIcon as ArrowCounterClockwise,
   ArrowRightIcon as ArrowRight,
   CheckCircleIcon as CheckCircle,
-  FilmStripIcon as FilmStrip,
 } from '@phosphor-icons/react';
 import { useEffect, useRef } from 'react';
 
 import { Button } from '../components/Button';
-import { PhotoSlot } from '../components/PhotoSlot';
+import { Photostrip, type PhotostripFrame } from '../components/Photostrip';
+import { DEFAULT_FRAME_PREVIEW } from '../local-fixtures';
 
 type ReviewScreenProps = {
   busy?: boolean;
   canAccept: boolean;
   canRetake: boolean;
   captureUrls: string[];
+  frame?: PhotostripFrame | null | undefined;
   onAccept: () => void;
   onRetake: () => void;
 };
@@ -23,6 +24,7 @@ export function ReviewScreen({
   canAccept,
   canRetake,
   captureUrls,
+  frame,
   onAccept,
   onRetake,
 }: ReviewScreenProps) {
@@ -35,52 +37,13 @@ export function ReviewScreen({
   return (
     <main className="screen screen--review" data-testid="review-screen">
       <div className="review-layout">
-        {/* Left / Center Stage: Authentic Physical Photobooth Strip */}
         <section className="review-stage" aria-label="Finished photobooth strip preview">
-          <div className="photostrip-preview">
-            <div
-              className="photostrip-preview__sprocket-bar photostrip-preview__sprocket-bar--top"
-              aria-hidden="true"
-            >
-              <span className="photostrip-preview__sprocket" />
-              <span className="photostrip-preview__sprocket" />
-              <span className="photostrip-preview__sprocket" />
-              <span className="photostrip-preview__sprocket" />
-            </div>
-
-            <div className="photostrip-preview__header">
-              <div className="photostrip-preview__brand">
-                <FilmStrip weight="bold" aria-hidden="true" />
-                <span>CCF ALABANG</span>
-              </div>
-            </div>
-
-            <div
-              className="photostrip-preview__frames"
-              role="region"
-              aria-label="Captured photo frames"
-            >
-              {Array.from({ length: 3 }, (_, index) => (
-                <PhotoSlot index={index + 1} key={index} src={captureUrls[index]} />
-              ))}
-            </div>
-
-            <div className="photostrip-preview__footer">
-              <div className="photostrip-preview__footer-brand">
-                <span>MINISTRY FAIR</span>
-              </div>
-            </div>
-
-            <div
-              className="photostrip-preview__sprocket-bar photostrip-preview__sprocket-bar--bottom"
-              aria-hidden="true"
-            >
-              <span className="photostrip-preview__sprocket" />
-              <span className="photostrip-preview__sprocket" />
-              <span className="photostrip-preview__sprocket" />
-              <span className="photostrip-preview__sprocket" />
-            </div>
-          </div>
+          <Photostrip
+            captureUrls={captureUrls}
+            frame={frame ?? DEFAULT_FRAME_PREVIEW}
+            label="Three captured photos in the selected Ministry Fair frame"
+            variant="preview"
+          />
         </section>
 
         <section className="review-panel" aria-labelledby="review-title">
@@ -92,7 +55,10 @@ export function ReviewScreen({
             <h1 id="review-title" data-screen-heading ref={headingRef} tabIndex={-1}>
               Review your photos
             </h1>
-            <p>Check your three-photo strip. Retake if you want another try, or continue to finish your collage.</p>
+            <p>
+              Check your three-photo strip. Retake if you want another try, or continue to finish
+              your collage.
+            </p>
           </div>
 
           <div className="review-actions">

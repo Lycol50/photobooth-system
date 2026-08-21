@@ -61,7 +61,7 @@ export async function runNativeSelfTest(workerUrl: URL): Promise<SelfTestResult>
     const worker = new WorkerImageProcessor(workerUrl);
     try {
       const processed = await worker.process({
-        captures: [photo, photo, photo, photo],
+        captures: [photo, photo, photo],
         framePng: frame,
         slots: [
           {
@@ -69,35 +69,26 @@ export async function runNativeSelfTest(workerUrl: URL): Promise<SelfTestResult>
             name: '1',
             x: 0,
             y: 0,
-            width: 0.5,
-            height: 0.5,
+            width: 1 / 3,
+            height: 1,
             cropMode: 'crop-to-fill',
           },
           {
             slotIndex: 2,
             name: '2',
-            x: 0.5,
+            x: 1 / 3,
             y: 0,
-            width: 0.5,
-            height: 0.5,
+            width: 1 / 3,
+            height: 1,
             cropMode: 'crop-to-fill',
           },
           {
             slotIndex: 3,
             name: '3',
-            x: 0,
-            y: 0.5,
-            width: 0.5,
-            height: 0.5,
-            cropMode: 'crop-to-fill',
-          },
-          {
-            slotIndex: 4,
-            name: '4',
-            x: 0.5,
-            y: 0.5,
-            width: 0.5,
-            height: 0.5,
+            x: 2 / 3,
+            y: 0,
+            width: 1 / 3,
+            height: 1,
             cropMode: 'crop-to-fill',
           },
         ],

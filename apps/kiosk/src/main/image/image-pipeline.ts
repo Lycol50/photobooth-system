@@ -88,7 +88,7 @@ export class ImagePipeline {
         const sourceIndex = slot.slotIndex - 1;
         const capture = input.captures[sourceIndex];
         const metadata = captureMetadata[sourceIndex];
-        if (!capture || !metadata) throw new AppError('capture_count', 'Four photos are required.');
+        if (!capture || !metadata) throw new AppError('capture_count', 'Three photos are required.');
         const box = slotBox(slot, canvas.width, canvas.height);
         const corrected = orientedSize(metadata);
         let pipeline = sharp(capture, {

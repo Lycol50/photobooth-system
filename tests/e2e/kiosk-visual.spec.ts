@@ -23,6 +23,9 @@ const VIEWPORTS = [
 for (const viewport of VIEWPORTS) {
   for (const state of STATES) {
     test(`${state} fits and remains accessible at ${viewport.label}`, async ({ page }) => {
+      if (state === 'processing' || state === 'uploading-backoff') {
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+      }
       const externalRequests: string[] = [];
       page.on('request', (request) => {
         const url = new URL(request.url());
@@ -47,6 +50,9 @@ for (const viewport of VIEWPORTS) {
           ),
         );
       });
+      if ((await page.getByTestId('processing-animation').count()) > 0) {
+        await expect(page.locator('.processing-animation__fallback')).toBeVisible();
+      }
       await page.addStyleTag({
         content: `
           *, *::before, *::after {
@@ -73,6 +79,30 @@ for (const viewport of VIEWPORTS) {
       expect(layout.documentHeight).toBeLessThanOrEqual(layout.viewportHeight);
       expect(externalRequests).toEqual([]);
 
+      if (state === 'final') {
+        const qrMetrics = await page
+          .getByRole('img', { name: 'QR code for your private photo download' })
+          .evaluate((image: HTMLImageElement) => {
+            const rect = image.getBoundingClientRect();
+            return {
+              height: rect.height,
+              naturalHeight: image.naturalHeight,
+              naturalWidth: image.naturalWidth,
+              unobstructed:
+                document.elementFromPoint(
+                  rect.left + rect.width / 2,
+                  rect.top + rect.height / 2,
+                ) === image,
+              width: rect.width,
+            };
+          });
+        expect(qrMetrics.width).toBeGreaterThanOrEqual(180);
+        expect(qrMetrics.height).toBe(qrMetrics.width);
+        expect(qrMetrics.naturalWidth).toBeGreaterThanOrEqual(300);
+        expect(qrMetrics.naturalHeight).toBe(qrMetrics.naturalWidth);
+        expect(qrMetrics.unobstructed).toBe(true);
+      }
+
       const accessibility = await new AxeBuilder({ page }).analyze();
       const seriousOrCritical = accessibility.violations.filter(
         (violation) => violation.impact === 'serious' || violation.impact === 'critical',
@@ -92,14 +122,8 @@ test('reduced motion removes cosmetic rotation and shutter flash', async ({ page
   await page.setViewportSize({ width: 1_366, height: 768 });
   await page.goto('/?visual=processing');
   await expect(page.getByTestId('processing-screen')).toBeVisible();
-  await expect
-    .poll(() =>
-      page.locator('.processing-card__motif svg').evaluate((element) => {
-        const style = getComputedStyle(element);
-        return style.animationName;
-      }),
-    )
-    .toBe('none');
+  await expect(page.locator('.processing-animation__fallback')).toBeVisible();
+  await expect(page.locator('.processing-animation svg')).toHaveCount(0);
 
   await page.goto('/?visual=countdown');
   const flash = page.locator('.shutter-flash');
@@ -112,4 +136,21 @@ test('reduced motion removes cosmetic rotation and shutter flash', async ({ page
       }),
     )
     .toEqual({ animationName: 'none', opacity: '0' });
+});
+
+test('processing loads the packaged Lottie animation without external requests', async ({
+  page,
+}) => {
+  const externalRequests: string[] = [];
+  const animationRequests: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.pathname.endsWith('/animations/loading.json')) animationRequests.push(request.url());
+    if (url.origin !== 'http://127.0.0.1:4174') externalRequests.push(request.url());
+  });
+  await page.setViewportSize({ width: 1_366, height: 768 });
+  await page.goto('/?visual=processing');
+  await expect(page.locator('.processing-animation svg')).toBeVisible();
+  expect(animationRequests).toHaveLength(1);
+  expect(externalRequests).toEqual([]);
 });

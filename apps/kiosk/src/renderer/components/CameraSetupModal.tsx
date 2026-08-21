@@ -299,7 +299,7 @@ export function CameraSetupModal({ isOpen, onClose, onCameraSaved }: CameraSetup
                 <span>MOCK CAMERA EMULATOR</span>
               </div>
               <p>
-                Simulates four guest shots using bundled test fixtures. Ideal for offline staging and UI verification without hardware.
+                Simulates three guest shots using bundled test fixtures. Ideal for offline staging and UI verification without hardware.
               </p>
             </div>
           )}

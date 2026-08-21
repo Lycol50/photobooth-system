@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 
+import { Photostrip } from '../components/Photostrip';
 import { QrPanel } from '../components/QrPanel';
+import { LOCAL_FIXTURES } from '../local-fixtures';
 
 type FinalQrScreenProps = {
   busy?: boolean;
@@ -24,12 +26,24 @@ export function FinalQrScreen({
 
   return (
     <main className="screen screen--final" data-testid="final-screen">
-      <section className="final-result" aria-label="Your finished photo" ref={resultRef}>
-        <div className="final-result__frame">
-          <img src={collageUrl} alt="Your finished three-photo strip" draggable="false" />
-        </div>
-      </section>
-      <QrPanel busy={busy} onDone={onDone} qrImageUrl={qrImageUrl} />
+      <img
+        className="final-background"
+        src={LOCAL_FIXTURES.finalBackground}
+        alt=""
+        aria-hidden="true"
+        draggable="false"
+      />
+      <div className="final-scrim" aria-hidden="true" />
+      <div className="final-composition">
+        <section className="final-result" aria-label="Your finished photo" ref={resultRef}>
+          <Photostrip
+            collageUrl={collageUrl}
+            label="Your finished three-photo strip"
+            variant="collage"
+          />
+        </section>
+        <QrPanel busy={busy} onDone={onDone} qrImageUrl={qrImageUrl} />
+      </div>
     </main>
   );
 }

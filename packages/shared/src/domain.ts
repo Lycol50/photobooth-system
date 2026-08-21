@@ -35,7 +35,7 @@ export type CropMode = z.infer<typeof CropModeSchema>;
 
 export const FrameSlotSchema = z
   .object({
-    slotIndex: z.number().int().min(1).max(4),
+    slotIndex: z.number().int().min(1).max(3),
     name: z.string().trim().min(1).max(40),
     x: z.number().min(0).max(1),
     y: z.number().min(0).max(1),
@@ -175,6 +175,7 @@ export const BoothMediaSchema = z
   .object({
     captureUrls: z.array(z.string().min(1)).max(3),
     collageUrl: z.string().min(1).nullable(),
+    frame: FrameSummarySchema.nullable().optional(),
     qrImageUrl: z.string().min(1).nullable(),
   })
   .strict();

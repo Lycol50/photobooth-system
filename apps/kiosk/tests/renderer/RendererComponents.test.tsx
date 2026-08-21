@@ -92,16 +92,28 @@ describe('guest screen components', () => {
   });
 
   it('renders only whole-set review actions', () => {
+    const captureUrls = ['/capture/one.jpg', '/capture/two.jpg', '/capture/three.jpg'];
     render(
       <ReviewScreen
         canAccept
         canRetake
-        captureUrls={[]}
+        captureUrls={captureUrls}
+        frame={FRAME}
         onAccept={() => undefined}
         onRetake={() => undefined}
       />,
     );
     expect(screen.getAllByRole('figure')).toHaveLength(3);
+    expect(screen.getByRole('group', { name: /selected Ministry Fair frame/i })).toHaveStyle({
+      aspectRatio: '1200 / 3600',
+    });
+    expect(screen.getByAltText('Captured photo 1')).toHaveAttribute('src', captureUrls[0]);
+    expect(screen.getByAltText('Captured photo 2')).toHaveAttribute('src', captureUrls[1]);
+    expect(screen.getByAltText('Captured photo 3')).toHaveAttribute('src', captureUrls[2]);
+    expect(screen.getByAltText('Captured photo 1').closest('figure')).toHaveStyle({
+      left: '17.1667%',
+      top: '16.1667%',
+    });
     expect(screen.getAllByRole('button')).toHaveLength(2);
     expect(screen.queryByText(/retake photo 1/i)).not.toBeInTheDocument();
   });
@@ -109,6 +121,8 @@ describe('guest screen components', () => {
   it('distinguishes collage processing from upload backoff without claiming readiness', () => {
     const { rerender } = render(<ProcessingScreen state="processing" />);
     expect(screen.getByText('Creating your collage')).toBeVisible();
+    expect(screen.getByText('Combining your three photos into one finished image.')).toBeVisible();
+    expect(screen.getByTestId('processing-animation')).toBeVisible();
     expect(screen.queryByText('Photo ready')).not.toBeInTheDocument();
 
     rerender(<ProcessingScreen state="pending_upload" />);

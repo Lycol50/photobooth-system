@@ -294,12 +294,9 @@ describe('App guest flow', () => {
           state: 'review',
           captureCount: 3,
           media: {
-            captureUrls: [
-              '/mock/photo-1.jpg',
-              '/mock/photo-2.jpg',
-              '/mock/photo-3.jpg',
-            ],
+            captureUrls: ['/mock/photo-1.jpg', '/mock/photo-2.jpg', '/mock/photo-3.jpg'],
             collageUrl: null,
+            frame: FRAME,
             qrImageUrl: null,
           },
           controls: {
@@ -315,6 +312,10 @@ describe('App guest flow', () => {
     );
 
     expect(await screen.findByTestId('review-screen')).toBeVisible();
+    expect(screen.getByRole('group', { name: /selected Ministry Fair frame/i })).toBeVisible();
+    expect(
+      screen.getByRole('group', { name: /selected Ministry Fair frame/i }).lastElementChild,
+    ).toHaveAttribute('src', FRAME.mediaUrl);
     const buttons = screen.getAllByRole('button');
     expect(buttons).toHaveLength(2);
     expect(screen.getByRole('button', { name: /retake all photos/i })).toBeVisible();

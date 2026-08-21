@@ -49,19 +49,19 @@ test('guest happy path, repeated retakes, final restoration, and Done reset', as
   }
 });
 
-test('four production-length countdowns require at least 32 seconds', async () => {
+test('three production-length countdowns require at least 15 seconds', async () => {
   const userData = await createUserDataDirectory();
   let kiosk: RunningKiosk | null = null;
   try {
     kiosk = await launchKiosk(userData, {
-      GRACE_BOOTH_E2E_COUNTDOWN_MS: 8_000,
+      GRACE_BOOTH_E2E_COUNTDOWN_MS: 5_000,
       GRACE_BOOTH_E2E_CAMERA_DELAY_MS: 0,
     });
     await bootstrap(kiosk.page);
     const startedAt = Date.now();
     await kiosk.page.getByRole('button', { name: 'Start Session' }).click();
     await expect(kiosk.page.getByTestId('review-screen')).toBeVisible({ timeout: 45_000 });
-    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(31_500);
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(14_500);
   } finally {
     await closeKiosk(kiosk?.app);
     await removeUserDataDirectory(userData);
@@ -188,7 +188,7 @@ async function startAndWaitForReview(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Start Session' }).click();
   await expect(page.getByTestId('capture-screen')).toBeVisible();
   await expect(page.getByTestId('review-screen')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('.photo-slot img')).toHaveCount(4);
+  await expect(page.locator('.photo-slot img')).toHaveCount(3);
 }
 
 async function exitImmediately(app: ElectronApplication): Promise<void> {

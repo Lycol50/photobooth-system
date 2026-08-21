@@ -68,7 +68,7 @@ function adminErrorMessage<T>(result: RpcResult<T>): string {
 }
 
 function useCountdown(deadline: number | null, fixedValue?: number): number {
-  const [seconds, setSeconds] = useState(8);
+  const [seconds, setSeconds] = useState(5);
 
   useEffect(() => {
     if (fixedValue !== undefined || !deadline) {
@@ -76,7 +76,7 @@ function useCountdown(deadline: number | null, fixedValue?: number): number {
     }
 
     const update = () => {
-      setSeconds(Math.max(1, Math.min(8, Math.ceil((deadline - Date.now()) / 1_000))));
+      setSeconds(Math.max(1, Math.min(5, Math.ceil((deadline - Date.now()) / 1_000))));
     };
     const initialUpdate = window.setTimeout(update, 0);
     const interval = window.setInterval(update, 100);
@@ -86,7 +86,7 @@ function useCountdown(deadline: number | null, fixedValue?: number): number {
     };
   }, [deadline, fixedValue]);
 
-  return fixedValue ?? (deadline ? seconds : 8);
+  return fixedValue ?? (deadline ? seconds : 5);
 }
 
 export function App() {
@@ -739,6 +739,7 @@ export function App() {
           canAccept={snapshot.controls.canAcceptPhotos}
           canRetake={snapshot.controls.canRetakeAll}
           captureUrls={snapshot.media.captureUrls}
+          frame={snapshot.media.frame}
           onAccept={() => void runGuestCommand((bridge) => bridge.booth.acceptPhotos())}
           onRetake={() => void runGuestCommand((bridge) => bridge.booth.retakeAll())}
         />

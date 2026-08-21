@@ -18,9 +18,9 @@ const EnvironmentSchema = z
       .optional(),
     GRACE_BOOTH_SUPABASE_PUBLISHABLE_KEY: z.string().min(20).max(1_000).optional(),
     GRACE_BOOTH_E2E: z.enum(['0', '1']).default('0'),
-    GRACE_BOOTH_E2E_COUNTDOWN_MS: z.coerce.number().int().min(10).max(8_000).optional(),
+    GRACE_BOOTH_E2E_COUNTDOWN_MS: z.coerce.number().int().min(10).max(5_000).optional(),
     GRACE_BOOTH_E2E_CAMERA_DELAY_MS: z.coerce.number().int().min(0).max(10_000).optional(),
-    GRACE_BOOTH_E2E_CAPTURE_FAIL_SHOT: z.coerce.number().int().min(1).max(4).optional(),
+    GRACE_BOOTH_E2E_CAPTURE_FAIL_SHOT: z.coerce.number().int().min(1).max(3).optional(),
     GRACE_BOOTH_E2E_UPLOAD_FAILURES: z.coerce.number().int().min(0).max(4).optional(),
     GRACE_BOOTH_E2E_CREATE_DELAY_MS: z.coerce.number().int().min(0).max(60_000).optional(),
     GRACE_BOOTH_E2E_UPLOAD_DELAY_MS: z.coerce.number().int().min(0).max(60_000).optional(),
@@ -68,7 +68,7 @@ export function loadRuntimeConfig(
   const clockStartedAt = Date.now();
   const clockBase =
     e2eEnabled && parsed.GRACE_BOOTH_E2E_NOW_MS ? parsed.GRACE_BOOTH_E2E_NOW_MS : clockStartedAt;
-  
+
   const cloudUrl = parsed.GRACE_BOOTH_SUPABASE_URL ?? (e2eEnabled ? null : DEFAULT_PROD_SUPABASE_URL);
   const cloudPublishableKey =
     parsed.GRACE_BOOTH_SUPABASE_PUBLISHABLE_KEY ?? (e2eEnabled ? null : DEFAULT_PROD_SUPABASE_PUBLISHABLE_KEY);
@@ -81,7 +81,7 @@ export function loadRuntimeConfig(
     },
     e2e: {
       enabled: e2eEnabled,
-      countdownMs: e2eEnabled ? (parsed.GRACE_BOOTH_E2E_COUNTDOWN_MS ?? 40) : 8_000,
+      countdownMs: e2eEnabled ? (parsed.GRACE_BOOTH_E2E_COUNTDOWN_MS ?? 40) : 5_000,
       cameraDelayMs: e2eEnabled ? (parsed.GRACE_BOOTH_E2E_CAMERA_DELAY_MS ?? 10) : 300,
       captureFailShot: e2eEnabled ? (parsed.GRACE_BOOTH_E2E_CAPTURE_FAIL_SHOT ?? null) : null,
       uploadFailures: e2eEnabled ? (parsed.GRACE_BOOTH_E2E_UPLOAD_FAILURES ?? 0) : 0,

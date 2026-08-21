@@ -4,8 +4,9 @@ import {
   FilmStripIcon as FilmStrip,
   LockKeyIcon as LockKey,
   QrCodeIcon as QrCode,
-  SpinnerGapIcon as SpinnerGap,
 } from '@phosphor-icons/react';
+import { LottieLight } from 'lottie-react';
+import { useEffect, useState } from 'react';
 
 import type { SessionState } from '@grace-booth/shared';
 
@@ -38,7 +39,9 @@ function copyForState(
   if (state === 'pending_upload') {
     return {
       headline: 'Your photo is safely saved',
-      status: message ?? 'Your collage is saved on this booth. Waiting to upload when the connection is ready.',
+      status:
+        message ??
+        'Your collage is saved on this booth. Waiting to upload when the connection is ready.',
       activeStep: 2,
     };
   }
@@ -53,7 +56,7 @@ function copyForState(
 
   return {
     headline: 'Creating your collage',
-    status: message ?? 'Combining your four photos into one finished image.',
+    status: message ?? 'Combining your three photos into one finished image.',
     activeStep: 1,
   };
 }
@@ -66,6 +69,20 @@ const STEPS = [
 
 export function ProcessingScreen({ message, onOpenAdmin, state }: ProcessingScreenProps) {
   const copy = copyForState(state, message);
+  const [reducedMotion, setReducedMotion] = useState(
+    () =>
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
 
   return (
     <main
@@ -94,8 +111,17 @@ export function ProcessingScreen({ message, onOpenAdmin, state }: ProcessingScre
         role="status"
         aria-live="polite"
       >
-        <div className="processing-card__motif" aria-hidden="true">
-          <SpinnerGap weight="bold" />
+        <div className="processing-animation" data-testid="processing-animation" aria-hidden="true">
+          {reducedMotion ? (
+            <div className="processing-animation__fallback" />
+          ) : (
+            <LottieLight
+              src={LOCAL_FIXTURES.processingAnimation}
+              autoplay
+              loop
+              rendererSettings={{ preserveAspectRatio: 'xMidYMid meet' }}
+            />
+          )}
         </div>
         <h1 id="processing-title" data-screen-heading tabIndex={-1}>
           {copy.headline}

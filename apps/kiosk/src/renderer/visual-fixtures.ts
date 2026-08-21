@@ -33,11 +33,7 @@ export type VisualFixtureMode =
 const SESSION_ID = '11111111-1111-4111-8111-111111111111';
 const FRAME_ID = '22222222-2222-4222-8222-222222222222';
 const JOB_ID = '33333333-3333-4333-8333-333333333333';
-const CAPTURE_URLS = [
-  '/mock/photo-1.jpg',
-  '/mock/photo-2.jpg',
-  '/mock/photo-3.jpg',
-];
+const CAPTURE_URLS = ['/mock/photo-1.jpg', '/mock/photo-2.jpg', '/mock/photo-3.jpg'];
 
 const DEFAULT_FRAME: FrameSummary = {
   id: FRAME_ID,
@@ -98,7 +94,12 @@ const SETTINGS: AdminSettings = {
 };
 
 const HEALTH: AdminHealth = {
-  camera: { state: 'healthy', code: null, message: 'Deterministic mock camera ready.', checkedAt: 1 },
+  camera: {
+    state: 'healthy',
+    code: null,
+    message: 'Deterministic mock camera ready.',
+    checkedAt: 1,
+  },
   cloud: { state: 'healthy', code: null, message: 'Cloud delivery ready.', checkedAt: 1 },
   database: { state: 'healthy', code: null, message: 'Local database ready.', checkedAt: 1 },
   encryption: { state: 'healthy', code: null, message: 'DPAPI encryption ready.', checkedAt: 1 },
@@ -165,6 +166,72 @@ async function buildReadyQr(): Promise<string> {
   });
 }
 
+async function loadFixtureImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image), { once: true });
+    image.addEventListener('error', () => reject(new Error(`visual_fixture_unavailable:${src}`)), {
+      once: true,
+    });
+    image.src = src;
+  });
+}
+
+function drawFixtureSlot(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): void {
+  const sourceAspect = image.naturalWidth / image.naturalHeight;
+  const targetAspect = width / height;
+  let sourceX = 0;
+  let sourceY = 0;
+  let sourceWidth = image.naturalWidth;
+  let sourceHeight = image.naturalHeight;
+  if (sourceAspect > targetAspect) {
+    sourceWidth = sourceHeight * targetAspect;
+    sourceX = (image.naturalWidth - sourceWidth) / 2;
+  } else {
+    sourceHeight = sourceWidth / targetAspect;
+    sourceY = (image.naturalHeight - sourceHeight) / 2;
+  }
+  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
+}
+
+async function buildReadyCollage(): Promise<string> {
+  const width = 600;
+  const height = 1_800;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('visual_fixture_canvas_unavailable');
+  context.fillStyle = '#000000';
+  context.fillRect(0, 0, width, height);
+
+  const captures = await Promise.all(CAPTURE_URLS.map(loadFixtureImage));
+  for (const slot of [...DEFAULT_FRAME.slots].sort(
+    (left, right) => left.slotIndex - right.slotIndex,
+  )) {
+    const capture = captures[slot.slotIndex - 1];
+    if (!capture) continue;
+    drawFixtureSlot(
+      context,
+      capture,
+      slot.x * width,
+      slot.y * height,
+      slot.width * width,
+      slot.height * height,
+    );
+  }
+
+  context.drawImage(await loadFixtureImage(DEFAULT_FRAME.mediaUrl), 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', 0.9);
+}
+
 export async function createVisualSeedPayload(
   mode: VisualFixtureMode,
 ): Promise<VisualSeedPayload | null> {
@@ -191,7 +258,12 @@ export async function createVisualSeedPayload(
         state: 'review',
         shotNumber: null,
         captureCount: 3,
-        media: { captureUrls: CAPTURE_URLS, collageUrl: null, qrImageUrl: null },
+        media: {
+          captureUrls: CAPTURE_URLS,
+          collageUrl: null,
+          frame: DEFAULT_FRAME,
+          qrImageUrl: null,
+        },
         controls: { canRetakeAll: true, canAcceptPhotos: true },
       });
       break;
@@ -223,7 +295,8 @@ export async function createVisualSeedPayload(
         captureCount: 3,
         media: {
           captureUrls: CAPTURE_URLS,
-          collageUrl: '/mock/photo-3.jpg',
+          collageUrl: await buildReadyCollage(),
+          frame: DEFAULT_FRAME,
           qrImageUrl: await buildReadyQr(),
         },
         controls: { canFinish: true },
