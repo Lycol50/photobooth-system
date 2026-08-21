@@ -1,7 +1,8 @@
 import { SIGNED_UPLOAD_VALID_FOR_SECONDS } from '../_shared/constants.ts';
 import { ApiError } from '../_shared/errors.ts';
-import { photoBucket, publicTokenDerivationKey } from '../_shared/env.ts';
+import { isR2Configured, photoBucket, publicTokenDerivationKey } from '../_shared/env.ts';
 import { assertPost, errorResponse, jsonResponse, readJson, requestId } from '../_shared/http.ts';
+import { createR2Client, createR2PresignedPutUrl } from '../_shared/r2.ts';
 import { CreateOrResumeUploadSchema, parseWithSchema } from '../_shared/schemas.ts';
 import { type AdminClient, authenticateBooth, createAdminClient } from '../_shared/supabase.ts';
 import { derivePublicToken, hashPublicToken } from '../_shared/token.ts';
@@ -9,13 +10,32 @@ import { derivePublicToken, hashPublicToken } from '../_shared/token.ts';
 type UploadAuthorization = {
   storagePath: string;
   signedUploadToken: string;
+  uploadUrl?: string;
   validForSeconds: typeof SIGNED_UPLOAD_VALID_FOR_SECONDS;
 };
 
 async function authorizeUpload(
   admin: AdminClient,
   storagePath: string,
+  contentType: string = 'image/jpeg',
+  byteSize?: number,
 ): Promise<UploadAuthorization> {
+  if (isR2Configured()) {
+    const r2 = createR2Client();
+    const uploadUrl = await createR2PresignedPutUrl(
+      r2,
+      storagePath,
+      contentType,
+      SIGNED_UPLOAD_VALID_FOR_SECONDS,
+    );
+    return {
+      storagePath,
+      signedUploadToken: 'r2_presigned',
+      uploadUrl,
+      validForSeconds: SIGNED_UPLOAD_VALID_FOR_SECONDS,
+    };
+  }
+
   const { data, error } = await admin.storage
     .from(photoBucket())
     .createSignedUploadUrl(storagePath, { upsert: false });
@@ -157,7 +177,12 @@ export async function handler(request: Request): Promise<Response> {
       throw new ApiError(503, 'unavailable', 'Photo delivery is temporarily unavailable.', true);
     }
 
-    const upload = await authorizeUpload(admin, created.storage_object_path);
+    const upload = await authorizeUpload(
+      admin,
+      created.storage_object_path,
+      input.contentType,
+      input.byteSize,
+    );
     return jsonResponse(
       { photoSessionId: created.id, publicToken, upload },
       created.created ? 201 : 200,

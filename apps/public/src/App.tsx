@@ -162,7 +162,7 @@ function ReadyView({
           </p>
           <h1 id="photo-title">Hold on to this moment.</h1>
           <p className="lead-copy">
-            Your finished 4-frame collage is prepared for download. Save it directly to your device storage before expiration.
+            Your finished 3-frame photobooth strip is prepared for download. Save it directly to your device storage before expiration.
           </p>
         </div>
 

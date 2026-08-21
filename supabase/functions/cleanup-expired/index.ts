@@ -1,8 +1,9 @@
 import { CLEANUP_BATCH_SIZE, CLEANUP_MAX_BATCHES } from '../_shared/constants.ts';
 import { constantTimeEqual } from '../_shared/encoding.ts';
 import { ApiError } from '../_shared/errors.ts';
-import { cleanupSecret, photoBucket } from '../_shared/env.ts';
+import { cleanupSecret, isR2Configured, photoBucket } from '../_shared/env.ts';
 import { assertPost, errorResponse, jsonResponse, readJson, requestId } from '../_shared/http.ts';
+import { createR2Client, deleteR2Objects } from '../_shared/r2.ts';
 import { type AdminClient, createAdminClient } from '../_shared/supabase.ts';
 
 type CleanupClaim = {
@@ -77,13 +78,23 @@ export async function runCleanup(
     if (claims.length === 0) break;
 
     for (const claim of claims) {
-      const { error: removeError } = await admin.storage
-        .from(bucket)
-        .remove([claim.storage_object_path]);
+      if (isR2Configured()) {
+        try {
+          const r2 = createR2Client();
+          await deleteR2Objects(r2, [claim.storage_object_path]);
+        } catch {
+          failedCount += 1;
+          continue;
+        }
+      } else {
+        const { error: removeError } = await admin.storage
+          .from(bucket)
+          .remove([claim.storage_object_path]);
 
-      if (removeError) {
-        failedCount += 1;
-        continue;
+        if (removeError) {
+          failedCount += 1;
+          continue;
+        }
       }
 
       const { data: completed, error: completeError } = await admin.rpc(

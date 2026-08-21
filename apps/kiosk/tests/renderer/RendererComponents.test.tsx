@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { AdminHealth, AdminSettings, FrameLayout, FrameSummary } from '@grace-booth/shared';
+import type { AdminHealth, AdminSettings, FrameLayout } from '@grace-booth/shared';
 
 import { AdminSettings as AdminSettingsScreen } from '../../src/renderer/admin/AdminSettings';
 import { FrameEditor } from '../../src/renderer/admin/FrameEditor';
@@ -16,11 +16,11 @@ import { RecoveryScreen } from '../../src/renderer/screens/RecoveryScreen';
 import { ReviewScreen } from '../../src/renderer/screens/ReviewScreen';
 import { recoveryVariantFor, safeGuestMessage } from '../../src/renderer/types';
 
-const FRAME: FrameSummary = {
+const FRAME = {
   id: '22222222-2222-4222-8222-222222222222',
-  name: 'Grace Booth Classic.png',
-  width: 2700,
-  height: 1800,
+  name: 'CCF Alabang Ministry Fair Strip',
+  width: 1200,
+  height: 3600,
   byteSize: 44_090,
   mediaUrl: '/frames/default-frame.png',
   revision: 1,
@@ -28,33 +28,32 @@ const FRAME: FrameSummary = {
     {
       slotIndex: 1,
       name: 'Photo 1',
-      x: 0.04,
-      y: 0.14,
-      width: 0.44,
-      height: 0.32,
+      x: 0.171667,
+      y: 0.161667,
+      width: 0.581667,
+      height: 0.158056,
       cropMode: 'crop-to-fill',
     },
     {
       slotIndex: 2,
       name: 'Photo 2',
-      x: 0.52,
-      y: 0.14,
-      width: 0.44,
-      height: 0.32,
+      x: 0.151667,
+      y: 0.4225,
+      width: 0.57,
+      height: 0.151667,
       cropMode: 'crop-to-fill',
     },
     {
       slotIndex: 3,
       name: 'Photo 3',
-      x: 0.04,
-      y: 0.5,
-      width: 0.44,
-      height: 0.32,
+      x: 0.258333,
+      y: 0.713611,
+      width: 0.5325,
+      height: 0.144167,
       cropMode: 'crop-to-fill',
     },
-    { slotIndex: 4, name: 'Photo 4', x: 0.52, y: 0.5, width: 0.44, height: 0.32, cropMode: 'fit' },
   ],
-};
+} satisfies AdminSettings['activeFrame'];
 
 const SETTINGS: AdminSettings = {
   googleFormsUrl: null,
@@ -87,9 +86,9 @@ afterEach(cleanup);
 describe('guest screen components', () => {
   it('renders the locked countdown progress and current pose', () => {
     render(<CaptureScreen phase="countdown" secondsRemaining={5} shotNumber={3} />);
-    expect(screen.getByText('Photo 3 of 4')).toBeVisible();
+    expect(screen.getByText('Photo 3 of 3')).toBeVisible();
     expect(screen.getByTestId('countdown-value')).toHaveTextContent('5');
-    expect(screen.getByText('Peace signs and hugs!')).toBeVisible();
+    expect(screen.getByText(/Ministry Fair · Grand celebratory finale!/i)).toBeVisible();
   });
 
   it('renders only whole-set review actions', () => {
@@ -102,7 +101,7 @@ describe('guest screen components', () => {
         onRetake={() => undefined}
       />,
     );
-    expect(screen.getAllByRole('figure')).toHaveLength(4);
+    expect(screen.getAllByRole('figure')).toHaveLength(3);
     expect(screen.getAllByRole('button')).toHaveLength(2);
     expect(screen.queryByText(/retake photo 1/i)).not.toBeInTheDocument();
   });
@@ -151,7 +150,7 @@ describe('FrameEditor', () => {
     fireEvent.change(screen.getByLabelText('width percent'), { target: { value: '30' } });
     expect(screen.getByLabelText('width percent')).toHaveValue(30);
     await user.click(screen.getByRole('button', { name: /reset slot/i }));
-    expect(screen.getByLabelText('width percent')).toHaveValue(44);
+    expect(screen.getByLabelText('width percent')).toHaveValue(58.2);
   });
 
   it('applies 1-click layout presets across all slots', async () => {
@@ -159,19 +158,19 @@ describe('FrameEditor', () => {
     const user = userEvent.setup();
     render(<FrameEditor frame={FRAME} onChooseFrame={() => undefined} onSave={onSave} />);
 
-    await user.click(screen.getByRole('button', { name: /2×2 Grid/i }));
-    expect(screen.getByLabelText('x percent')).toHaveValue(6);
-    expect(screen.getByLabelText('width percent')).toHaveValue(41);
+    await user.click(screen.getByRole('button', { name: /3-Stack/i }));
+    expect(screen.getByLabelText('x percent')).toHaveValue(10);
+    expect(screen.getByLabelText('width percent')).toHaveValue(80);
 
-    await user.click(screen.getByRole('button', { name: /4-Strip/i }));
-    expect(screen.getByLabelText('x percent')).toHaveValue(12);
-    expect(screen.getByLabelText('width percent')).toHaveValue(76);
+    await user.click(screen.getByRole('button', { name: /3-Strip/i }));
+    expect(screen.getByLabelText('x percent')).toHaveValue(17.2);
+    expect(screen.getByLabelText('width percent')).toHaveValue(58.2);
 
     await user.click(screen.getByRole('button', { name: /Save configuration/i }));
     expect(onSave).toHaveBeenCalledOnce();
     const savedSlots = onSave.mock.calls[0]?.[0];
-    expect(savedSlots).toHaveLength(4);
-    expect(savedSlots?.[0]?.width).toBeCloseTo(0.76);
+    expect(savedSlots).toHaveLength(3);
+    expect(savedSlots?.[0]?.width).toBeCloseTo(0.581667);
   });
 });
 

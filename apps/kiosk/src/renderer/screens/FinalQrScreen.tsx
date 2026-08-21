@@ -26,7 +26,7 @@ export function FinalQrScreen({
     <main className="screen screen--final" data-testid="final-screen">
       <section className="final-result" aria-label="Your finished photo" ref={resultRef}>
         <div className="final-result__frame">
-          <img src={collageUrl} alt="Your finished four-photo collage" draggable="false" />
+          <img src={collageUrl} alt="Your finished three-photo strip" draggable="false" />
         </div>
       </section>
       <QrPanel busy={busy} onDone={onDone} qrImageUrl={qrImageUrl} />

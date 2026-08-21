@@ -51,7 +51,7 @@ export const CaptureRequestSchema = z
   .object({
     sessionId: OpaqueIdSchema,
     captureId: OpaqueIdSchema,
-    shotNumber: z.number().int().min(1).max(4),
+    shotNumber: z.number().int().min(1).max(3),
     timeoutMs: z.number().int().min(1_000).max(120_000),
   })
   .strict();

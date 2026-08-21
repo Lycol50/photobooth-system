@@ -335,6 +335,10 @@ export class LocalRepository {
           cropMode: String(value.crop_mode),
         };
       });
+    const parsedSlots = FrameLayoutSchema.safeParse(slots);
+    if (!parsedSlots.success) {
+      return null;
+    }
     return {
       id: String(row.id),
       name: String(row.name),
@@ -346,7 +350,7 @@ export class LocalRepository {
       revision: Number(row.revision),
       createdAt: Number(row.created_at),
       updatedAt: Number(row.updated_at),
-      slots: FrameLayoutSchema.parse(slots),
+      slots: parsedSlots.data,
     };
   }
 
@@ -485,20 +489,20 @@ export class LocalRepository {
       }
       const expectedState = reduceSessionState(
         current.state,
-        current.captureCount < 3 ? 'capture_more' : 'capture_complete',
+        current.captureCount < 2 ? 'capture_more' : 'capture_complete',
       );
       this.insertAsset(asset);
       const result = this.database.raw
         .prepare(
           `UPDATE sessions SET capture_count = capture_count + 1, state = 'countdown',
-            updated_at = ? WHERE id = ? AND state = 'capturing' AND capture_count < 3`,
+            updated_at = ? WHERE id = ? AND state = 'capturing' AND capture_count < 2`,
         )
         .run(now, asset.sessionId);
       if (result.changes === 0) {
         const finalResult = this.database.raw
           .prepare(
             `UPDATE sessions SET capture_count = capture_count + 1, state = 'review',
-              updated_at = ? WHERE id = ? AND state = 'capturing' AND capture_count = 3`,
+              updated_at = ? WHERE id = ? AND state = 'capturing' AND capture_count = 2`,
           )
           .run(now, asset.sessionId);
         if (finalResult.changes !== 1) {

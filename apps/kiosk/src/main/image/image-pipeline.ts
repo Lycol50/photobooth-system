@@ -14,7 +14,7 @@ const MAX_INPUT_PIXELS = 80_000_000;
 const MAX_EDGE = 12_000;
 
 export type ImagePipelineInput = {
-  captures: readonly [Uint8Array, Uint8Array, Uint8Array, Uint8Array];
+  captures: readonly [Uint8Array, Uint8Array, Uint8Array] | readonly Uint8Array[];
   framePng: Uint8Array;
   slots: FrameLayout;
   frameAspectRatio?: number;
@@ -76,8 +76,8 @@ export class ImagePipeline {
     const validationComplete = performance.now();
 
     const longEdge = input.longEdge ?? 2_700;
-    if (longEdge < 2_500 || longEdge > 3_000) {
-      throw new AppError('output_dimensions', 'The collage long edge must be 2500–3000 pixels.');
+    if (longEdge < 2_400 || longEdge > 3_600) {
+      throw new AppError('output_dimensions', 'The collage long edge must be 2400–3600 pixels.');
     }
     const canvas = dimensionsForAspect(decodedAspect, longEdge);
     const focusPoints = await Promise.all(

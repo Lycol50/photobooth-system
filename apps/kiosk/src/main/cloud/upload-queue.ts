@@ -224,7 +224,7 @@ export class UploadQueue extends EventEmitter {
       let remotePhotoSessionId = session.cloudPhotoSessionId;
       let secretRef = session.publicSecretRef;
       let deliverySecret: PublicDeliverySecret;
-      let upload: { storagePath: string; signedUploadToken: string };
+      let upload: { storagePath: string; signedUploadToken: string; uploadUrl?: string | undefined };
 
       if (!remotePhotoSessionId || !secretRef) {
         const settings = this.repository.getSettings();
@@ -265,7 +265,12 @@ export class UploadQueue extends EventEmitter {
       }
 
       this.repository.updateUploadJob(job.id, 'uploading');
-      await this.delivery.uploadSigned(upload.storagePath, upload.signedUploadToken, bytes);
+      await this.delivery.uploadSigned(
+        upload.storagePath,
+        upload.signedUploadToken,
+        bytes,
+        upload.uploadUrl,
+      );
       this.repository.updateUploadJob(job.id, 'confirming');
       const confirmed = await this.delivery.confirmUpload({
         photoSessionId: remotePhotoSessionId,

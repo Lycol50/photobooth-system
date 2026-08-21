@@ -1,5 +1,5 @@
 import { ApiError } from '../_shared/errors.ts';
-import { photoBucket, publicPageOrigin } from '../_shared/env.ts';
+import { isR2Configured, photoBucket, publicPageOrigin } from '../_shared/env.ts';
 import {
   assertExactOrigin,
   jsonResponse,
@@ -9,6 +9,7 @@ import {
   requestId,
   withBaseHeaders,
 } from '../_shared/http.ts';
+import { createR2Client, getR2ObjectBytes } from '../_shared/r2.ts';
 import { parseWithSchema, PublicPhotoTokenSchema } from '../_shared/schemas.ts';
 import { type AdminClient, createAdminClient } from '../_shared/supabase.ts';
 import { hashPublicToken } from '../_shared/token.ts';
@@ -129,17 +130,27 @@ export async function handler(request: Request): Promise<Response> {
       );
     }
 
-    const { data: image, error: imageError } = await admin.storage
-      .from(photoBucket())
-      .download(photo.storage_object_path);
-    if (imageError || !image) {
-      if (isStorageNotFound(imageError)) {
+    let bytes: Uint8Array;
+    if (isR2Configured()) {
+      const r2 = createR2Client();
+      const r2Bytes = await getR2ObjectBytes(r2, photo.storage_object_path);
+      if (!r2Bytes) {
         throw new ApiError(404, 'not_found', 'This photo is unavailable or has expired.');
       }
-      throw new ApiError(503, 'unavailable', 'Photo delivery is temporarily unavailable.', true);
+      bytes = r2Bytes;
+    } else {
+      const { data: image, error: imageError } = await admin.storage
+        .from(photoBucket())
+        .download(photo.storage_object_path);
+      if (imageError || !image) {
+        if (isStorageNotFound(imageError)) {
+          throw new ApiError(404, 'not_found', 'This photo is unavailable or has expired.');
+        }
+        throw new ApiError(503, 'unavailable', 'Photo delivery is temporarily unavailable.', true);
+      }
+      bytes = new Uint8Array(await image.arrayBuffer());
     }
 
-    const bytes = await image.arrayBuffer();
     if (bytes.byteLength !== Number(photo.byte_size)) {
       throw new ApiError(503, 'unavailable', 'Photo delivery is temporarily unavailable.', true);
     }
@@ -163,7 +174,7 @@ export async function handler(request: Request): Promise<Response> {
       },
       correlationId,
     );
-    return new Response(bytes, { status: 200, headers });
+    return new Response(bytes as unknown as BodyInit, { status: 200, headers });
   } catch (error) {
     return publicErrorResponse(error, allowedOrigin, correlationId);
   }

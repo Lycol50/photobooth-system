@@ -124,27 +124,26 @@ export function FrameEditor({
     }
   };
 
-  const applyPreset = (preset: 'grid-2x2' | 'strip-4' | 'hero-trio') => {
+  const applyPreset = (preset: 'strip-3' | 'strip-3-balanced' | 'hero-2') => {
     setSlots((current) => {
       return current.map((slot) => {
         const slotIdx = slot.slotIndex;
-        if (preset === 'grid-2x2') {
-          const x = slotIdx === 1 || slotIdx === 3 ? 0.06 : 0.53;
-          const y = slotIdx <= 2 ? 0.05 : 0.51;
-          return constrainSlot({ ...slot, x, y, width: 0.41, height: 0.42, cropMode: 'crop-to-fill' });
+        if (preset === 'strip-3') {
+          if (slotIdx === 1) return constrainSlot({ ...slot, x: 0.171667, y: 0.161667, width: 0.581667, height: 0.158056, cropMode: 'crop-to-fill' });
+          if (slotIdx === 2) return constrainSlot({ ...slot, x: 0.151667, y: 0.422500, width: 0.570000, height: 0.151667, cropMode: 'crop-to-fill' });
+          if (slotIdx === 3) return constrainSlot({ ...slot, x: 0.258333, y: 0.713611, width: 0.532500, height: 0.144167, cropMode: 'crop-to-fill' });
         }
-        if (preset === 'strip-4') {
-          const yPositions = [0.04, 0.27, 0.50, 0.73];
-          const y = yPositions[slotIdx - 1] ?? 0.04;
-          return constrainSlot({ ...slot, x: 0.12, y, width: 0.76, height: 0.20, cropMode: 'crop-to-fill' });
+        if (preset === 'strip-3-balanced') {
+          const yPositions = [0.08, 0.37, 0.66];
+          const y = yPositions[slotIdx - 1] ?? 0.08;
+          return constrainSlot({ ...slot, x: 0.10, y, width: 0.80, height: 0.26, cropMode: 'crop-to-fill' });
         }
-        if (preset === 'hero-trio') {
+        if (preset === 'hero-2') {
           if (slotIdx === 1) {
-            return constrainSlot({ ...slot, x: 0.06, y: 0.05, width: 0.56, height: 0.88, cropMode: 'crop-to-fill' });
+            return constrainSlot({ ...slot, x: 0.10, y: 0.08, width: 0.80, height: 0.44, cropMode: 'crop-to-fill' });
           }
-          const yPositions = [0.05, 0.355, 0.66];
-          const y = yPositions[slotIdx - 2] ?? 0.05;
-          return constrainSlot({ ...slot, x: 0.66, y, width: 0.28, height: 0.27, cropMode: 'crop-to-fill' });
+          const x = slotIdx === 2 ? 0.10 : 0.52;
+          return constrainSlot({ ...slot, x, y: 0.55, width: 0.38, height: 0.35, cropMode: 'crop-to-fill' });
         }
         return slot;
       });
@@ -178,7 +177,7 @@ export function FrameEditor({
             FRAME EDITOR
           </h1>
           <p>
-            Configure how four guest photos map onto the frame canvas. All positions stay proportional to the frame.
+            Configure how three guest photos map onto the frame canvas. All positions stay proportional to the frame.
           </p>
         </div>
         <div className="admin-page-header__actions">
@@ -233,19 +232,22 @@ export function FrameEditor({
                         height: element.offsetHeight / stageSize.height,
                       })
                     }
-                    position={{ x: slot.x * stageSize.width, y: slot.y * stageSize.height }}
+                    position={{
+                      x: slot.x * stageSize.width,
+                      y: slot.y * stageSize.height,
+                    }}
                     size={{
                       width: slot.width * stageSize.width,
                       height: slot.height * stageSize.height,
                     }}
                   >
                     <div
-                      className="frame-slot__content"
+                      aria-label={`${slot.name} preview`}
+                      className="frame-slot__inner"
                       onClick={() => setSelectedIndex(slot.slotIndex)}
                       onKeyDown={nudgeSelected}
                       role="button"
                       tabIndex={0}
-                      aria-label={`${slot.name}. Use arrow keys to move. Use the inspector to resize.`}
                       style={{ backgroundImage: `url(${mockPhotoFor(slot.slotIndex)})` }}
                     >
                       <span className="frame-slot__label">
@@ -271,30 +273,30 @@ export function FrameEditor({
             <div className="preset-buttons">
               <button
                 className="preset-btn"
-                onClick={() => applyPreset('grid-2x2')}
-                title="2x2 Balanced Grid"
-                type="button"
-              >
-                <SquaresFour aria-hidden="true" size={16} weight="bold" />
-                <span>2×2 Grid</span>
-              </button>
-              <button
-                className="preset-btn"
-                onClick={() => applyPreset('strip-4')}
-                title="Classic Vertical 4-Strip"
+                onClick={() => applyPreset('strip-3')}
+                title="CCF Alabang 3-Strip Artwork"
                 type="button"
               >
                 <Rows aria-hidden="true" size={16} weight="bold" />
-                <span>4-Strip</span>
+                <span>3-Strip</span>
               </button>
               <button
                 className="preset-btn"
-                onClick={() => applyPreset('hero-trio')}
-                title="Hero Portrait with 3 Thumbnails"
+                onClick={() => applyPreset('strip-3-balanced')}
+                title="Balanced Vertical 3-Stack"
+                type="button"
+              >
+                <SquaresFour aria-hidden="true" size={16} weight="bold" />
+                <span>3-Stack</span>
+              </button>
+              <button
+                className="preset-btn"
+                onClick={() => applyPreset('hero-2')}
+                title="Hero Top with 2 Thumbnails"
                 type="button"
               >
                 <SidebarSimple aria-hidden="true" size={16} weight="bold" />
-                <span>Hero+3</span>
+                <span>Hero+2</span>
               </button>
             </div>
           </fieldset>

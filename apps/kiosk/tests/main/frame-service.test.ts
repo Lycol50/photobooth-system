@@ -16,7 +16,7 @@ describe('frame import contract', () => {
     try {
       await expect(
         service.importFrame('square', Buffer.from('png'), DEFAULT_FRAME_SLOTS),
-      ).rejects.toThrow(/4:5 portrait/);
+      ).rejects.toThrow(/1:3 vertical photobooth strip/);
       expect(store.repository.getActiveFrame()).toBeNull();
     } finally {
       store.close();
@@ -34,26 +34,26 @@ describe('frame import contract', () => {
     try {
       await expect(
         service.importFrame('landscape', Buffer.from('png'), DEFAULT_FRAME_SLOTS),
-      ).rejects.toThrow(/4:5 portrait/);
+      ).rejects.toThrow(/1:3 vertical photobooth strip/);
     } finally {
       store.close();
     }
   });
 
-  it('validates exactly four slots before persisting an accepted portrait frame', async () => {
+  it('validates exactly three slots before persisting an accepted strip frame', async () => {
     const store = createTestStore();
     const service = new FrameService(
       store.repository,
       store.vault,
       'unused.png',
-      fakeProcessor(3_375, 4_219),
+      fakeProcessor(1_200, 3_600),
     );
     try {
       await expect(
         service.importFrame(
           'bad slots',
           Buffer.from('png'),
-          DEFAULT_FRAME_SLOTS.slice(0, 3) as never,
+          DEFAULT_FRAME_SLOTS.slice(0, 2) as never,
         ),
       ).rejects.toThrow();
       const frame = await service.importFrame(
@@ -61,7 +61,7 @@ describe('frame import contract', () => {
         Buffer.from('png'),
         DEFAULT_FRAME_SLOTS,
       );
-      expect(frame.slots).toHaveLength(4);
+      expect(frame.slots).toHaveLength(3);
       expect(frame.width / frame.height).toBeCloseTo(SUPPORTED_FRAME_ASPECT, 6);
     } finally {
       store.close();

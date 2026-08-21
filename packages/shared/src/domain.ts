@@ -64,13 +64,13 @@ export type FrameSlot = z.infer<typeof FrameSlotSchema>;
 
 export const FrameLayoutSchema = z
   .array(FrameSlotSchema)
-  .length(4)
+  .length(3)
   .superRefine((slots, context) => {
     const indices = new Set(slots.map((slot) => slot.slotIndex));
-    if (indices.size !== 4 || ![1, 2, 3, 4].every((index) => indices.has(index))) {
+    if (indices.size !== 3 || ![1, 2, 3].every((index) => indices.has(index))) {
       context.addIssue({
         code: 'custom',
-        message: 'Frame layout must contain slots 1 through 4 exactly once',
+        message: 'Frame layout must contain slots 1 through 3 exactly once',
       });
     }
   });
@@ -173,7 +173,7 @@ export const BoothControlsSchema = z
 
 export const BoothMediaSchema = z
   .object({
-    captureUrls: z.array(z.string().min(1)).max(4),
+    captureUrls: z.array(z.string().min(1)).max(3),
     collageUrl: z.string().min(1).nullable(),
     qrImageUrl: z.string().min(1).nullable(),
   })
@@ -184,8 +184,8 @@ export const BoothSnapshotSchema = z
     screen: GuestScreenSchema,
     state: SessionStateSchema.nullable(),
     sessionId: OpaqueIdSchema.nullable(),
-    shotNumber: z.number().int().min(1).max(4).nullable(),
-    captureCount: z.number().int().min(0).max(4),
+    shotNumber: z.number().int().min(1).max(3).nullable(),
+    captureCount: z.number().int().min(0).max(3),
     countdownEndsAt: UtcMillisSchema.nullable(),
     cameraPreviewEnabled: z.boolean(),
     media: BoothMediaSchema,

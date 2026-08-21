@@ -9,55 +9,44 @@ import { AppError } from '../errors.js';
 import type { ImageProcessor } from '../image/image-worker-client.js';
 import type { PhotoVault } from '../storage/photo-vault.js';
 
-/** Portrait collage aspect of the shipped PhotoBooth frame (3375 x 4219 pixels). */
-export const SUPPORTED_FRAME_ASPECT = 3_375 / 4_219;
-const FRAME_ASPECT_TOLERANCE = 0.005;
+/** 1:3 Vertical photobooth strip aspect of the CCF Alabang Ministry Fair frame (1200 x 3600 pixels). */
+export const SUPPORTED_FRAME_ASPECT = 1 / 3;
+const FRAME_ASPECT_TOLERANCE = 0.02;
 
 /**
- * Normalized photo slots calibrated against the transparent cutouts in the default frame. Each
- * slot is inflated three source pixels past its cutout so the guest photo fully covers the
- * rounded corners of the hole.
+ * Normalized photo slots calibrated against the transparent camera LCD cutouts in the default 3-strip frame.
  */
 export const DEFAULT_FRAME_SLOTS: FrameLayout = FrameLayoutSchema.parse([
   {
     slotIndex: 1,
     name: 'Photo 1',
-    x: 0.081185,
-    y: 0.174449,
-    width: 0.408593,
-    height: 0.288457,
+    x: 0.171667,
+    y: 0.161667,
+    width: 0.581667,
+    height: 0.158056,
     cropMode: 'crop-to-fill',
   },
   {
     slotIndex: 2,
     name: 'Photo 2',
-    x: 0.508148,
-    y: 0.174449,
-    width: 0.410667,
-    height: 0.288457,
+    x: 0.151667,
+    y: 0.4225,
+    width: 0.57,
+    height: 0.151667,
     cropMode: 'crop-to-fill',
   },
   {
     slotIndex: 3,
     name: 'Photo 3',
-    x: 0.081185,
-    y: 0.48566,
-    width: 0.408593,
-    height: 0.288931,
-    cropMode: 'crop-to-fill',
-  },
-  {
-    slotIndex: 4,
-    name: 'Photo 4',
-    x: 0.508148,
-    y: 0.48566,
-    width: 0.410667,
-    height: 0.288931,
+    x: 0.258333,
+    y: 0.713611,
+    width: 0.5325,
+    height: 0.144167,
     cropMode: 'crop-to-fill',
   },
 ]);
 
-export const DEFAULT_FRAME_NAME = 'Grace Booth Default';
+export const DEFAULT_FRAME_NAME = 'CCF Alabang Ministry Fair Strip';
 
 export class FrameService {
   constructor(
@@ -85,7 +74,7 @@ export class FrameService {
     if (Math.abs(aspect - SUPPORTED_FRAME_ASPECT) > FRAME_ASPECT_TOLERANCE) {
       throw new AppError(
         'frame_aspect',
-        'The frame must use the supported 4:5 portrait collage aspect.',
+        'The frame must use the supported 1:3 vertical photobooth strip aspect.',
       );
     }
     const stored = this.vault.write('frames', normalized.bytes);

@@ -17,6 +17,19 @@ export type VisualSeedPayload = {
   snapshot: BoothSnapshot;
 };
 
+export type VisualFixtureMode =
+  | 'attract'
+  | 'countdown'
+  | 'review'
+  | 'processing'
+  | 'uploading-backoff'
+  | 'final'
+  | 'recovery-camera'
+  | 'recovery-upload'
+  | 'recovery-interrupted'
+  | 'admin-frame'
+  | 'admin-settings';
+
 const SESSION_ID = '11111111-1111-4111-8111-111111111111';
 const FRAME_ID = '22222222-2222-4222-8222-222222222222';
 const JOB_ID = '33333333-3333-4333-8333-333333333333';
@@ -24,14 +37,13 @@ const CAPTURE_URLS = [
   '/mock/photo-1.jpg',
   '/mock/photo-2.jpg',
   '/mock/photo-3.jpg',
-  '/mock/photo-4.jpg',
 ];
 
 const DEFAULT_FRAME: FrameSummary = {
   id: FRAME_ID,
-  name: 'Grace Booth Classic.png',
-  width: 2700,
-  height: 1800,
+  name: 'CCF Alabang Ministry Fair Strip',
+  width: 1200,
+  height: 3600,
   byteSize: 44_090,
   mediaUrl: '/frames/default-frame.png',
   revision: 3,
@@ -39,37 +51,28 @@ const DEFAULT_FRAME: FrameSummary = {
     {
       slotIndex: 1,
       name: 'Photo 1',
-      x: 0.04,
-      y: 0.14,
-      width: 0.44,
-      height: 0.32,
+      x: 0.171667,
+      y: 0.161667,
+      width: 0.581667,
+      height: 0.158056,
       cropMode: 'crop-to-fill',
     },
     {
       slotIndex: 2,
       name: 'Photo 2',
-      x: 0.52,
-      y: 0.14,
-      width: 0.44,
-      height: 0.32,
+      x: 0.151667,
+      y: 0.4225,
+      width: 0.57,
+      height: 0.151667,
       cropMode: 'crop-to-fill',
     },
     {
       slotIndex: 3,
       name: 'Photo 3',
-      x: 0.04,
-      y: 0.5,
-      width: 0.44,
-      height: 0.32,
-      cropMode: 'crop-to-fill',
-    },
-    {
-      slotIndex: 4,
-      name: 'Photo 4',
-      x: 0.52,
-      y: 0.5,
-      width: 0.44,
-      height: 0.32,
+      x: 0.258333,
+      y: 0.713611,
+      width: 0.5325,
+      height: 0.144167,
       cropMode: 'crop-to-fill',
     },
   ],
@@ -91,34 +94,14 @@ const SETTINGS: AdminSettings = {
   cameraDeviceId: null,
   supabaseUrl: null,
   supabasePublishableKey: null,
-  revision: 5,
+  revision: 3,
 };
 
 const HEALTH: AdminHealth = {
-  camera: {
-    state: 'healthy',
-    code: null,
-    message: 'Mock camera is ready.',
-    checkedAt: 1_786_883_400_000,
-  },
-  cloud: {
-    state: 'healthy',
-    code: null,
-    message: 'Secure upload service is available.',
-    checkedAt: 1_786_883_400_000,
-  },
-  database: {
-    state: 'healthy',
-    code: null,
-    message: 'Local storage is ready.',
-    checkedAt: 1_786_883_400_000,
-  },
-  encryption: {
-    state: 'healthy',
-    code: null,
-    message: 'Secure credential storage is ready.',
-    checkedAt: 1_786_883_400_000,
-  },
+  camera: { state: 'healthy', code: null, message: 'Deterministic mock camera ready.', checkedAt: 1 },
+  cloud: { state: 'healthy', code: null, message: 'Cloud delivery ready.', checkedAt: 1 },
+  database: { state: 'healthy', code: null, message: 'Local database ready.', checkedAt: 1 },
+  encryption: { state: 'healthy', code: null, message: 'DPAPI encryption ready.', checkedAt: 1 },
 };
 
 const JOBS: UploadJobSummary[] = [
@@ -138,7 +121,7 @@ const JOBS: UploadJobSummary[] = [
 
 const BASE_SNAPSHOT: BoothSnapshot = {
   screen: 'attract',
-  state: 'attract',
+  state: null,
   sessionId: null,
   shotNumber: null,
   captureCount: 0,
@@ -182,21 +165,14 @@ async function buildReadyQr(): Promise<string> {
   });
 }
 
-export async function readVisualFixture(search: string): Promise<VisualSeedPayload | null> {
-  if (!import.meta.env.DEV) {
-    return null;
-  }
-
-  const seed = new URLSearchParams(search).get('visual');
-  if (!seed) {
-    return null;
-  }
-
+export async function createVisualSeedPayload(
+  mode: VisualFixtureMode,
+): Promise<VisualSeedPayload | null> {
   let snapshot = BASE_SNAPSHOT;
   let adminView: AdminView | null = null;
   let countdownSeconds: number | undefined;
 
-  switch (seed) {
+  switch (mode) {
     case 'attract':
       break;
     case 'countdown':
@@ -204,9 +180,9 @@ export async function readVisualFixture(search: string): Promise<VisualSeedPaylo
       snapshot = withSession({
         screen: 'countdown',
         state: 'countdown',
-        shotNumber: 3,
-        captureCount: 2,
-        media: { captureUrls: CAPTURE_URLS.slice(0, 2), collageUrl: null, qrImageUrl: null },
+        shotNumber: 2,
+        captureCount: 1,
+        media: { captureUrls: CAPTURE_URLS.slice(0, 1), collageUrl: null, qrImageUrl: null },
       });
       break;
     case 'review':
@@ -214,7 +190,7 @@ export async function readVisualFixture(search: string): Promise<VisualSeedPaylo
         screen: 'review',
         state: 'review',
         shotNumber: null,
-        captureCount: 4,
+        captureCount: 3,
         media: { captureUrls: CAPTURE_URLS, collageUrl: null, qrImageUrl: null },
         controls: { canRetakeAll: true, canAcceptPhotos: true },
       });
@@ -224,9 +200,9 @@ export async function readVisualFixture(search: string): Promise<VisualSeedPaylo
         screen: 'processing',
         state: 'processing',
         shotNumber: null,
-        captureCount: 4,
+        captureCount: 3,
         media: { captureUrls: CAPTURE_URLS, collageUrl: null, qrImageUrl: null },
-        message: 'Adding your four photos to the Grace Booth frame.',
+        message: 'Adding your three photos to the CCF Alabang frame.',
       });
       break;
     case 'uploading-backoff':
@@ -234,7 +210,7 @@ export async function readVisualFixture(search: string): Promise<VisualSeedPaylo
         screen: 'processing',
         state: 'pending_upload',
         shotNumber: null,
-        captureCount: 4,
+        captureCount: 3,
         media: { captureUrls: CAPTURE_URLS, collageUrl: null, qrImageUrl: null },
         message: 'Your collage is saved. The next secure upload attempt will begin shortly.',
       });
@@ -244,10 +220,10 @@ export async function readVisualFixture(search: string): Promise<VisualSeedPaylo
         screen: 'final',
         state: 'final',
         shotNumber: null,
-        captureCount: 4,
+        captureCount: 3,
         media: {
           captureUrls: CAPTURE_URLS,
-          collageUrl: '/mock/photo-4.jpg',
+          collageUrl: '/mock/photo-3.jpg',
           qrImageUrl: await buildReadyQr(),
         },
         controls: { canFinish: true },
@@ -265,10 +241,10 @@ export async function readVisualFixture(search: string): Promise<VisualSeedPaylo
       snapshot = withSession({
         screen: 'recovery',
         state: 'upload_failed',
-        captureCount: 4,
+        captureCount: 3,
         errorCode: 'upload_failed',
         message: 'Your photo is safe on this booth. Try the secure upload again.',
-        media: { captureUrls: CAPTURE_URLS, collageUrl: '/mock/photo-4.jpg', qrImageUrl: null },
+        media: { captureUrls: CAPTURE_URLS, collageUrl: '/mock/photo-3.jpg', qrImageUrl: null },
         controls: { canRetryUpload: true },
       });
       break;
@@ -297,4 +273,17 @@ export async function readVisualFixture(search: string): Promise<VisualSeedPaylo
     snapshot,
   };
   return countdownSeconds === undefined ? payload : { ...payload, countdownSeconds };
+}
+
+export async function readVisualFixture(search: string): Promise<VisualSeedPayload | null> {
+  if (!import.meta.env.DEV) {
+    return null;
+  }
+
+  const seed = new URLSearchParams(search).get('visual');
+  if (!seed) {
+    return null;
+  }
+
+  return createVisualSeedPayload(seed as VisualFixtureMode);
 }

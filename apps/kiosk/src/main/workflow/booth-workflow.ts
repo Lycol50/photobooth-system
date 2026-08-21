@@ -19,7 +19,7 @@ import type { ImageProcessor } from '../image/image-worker-client.js';
 import type { PhotoVault } from '../storage/photo-vault.js';
 import { reduceSessionState, type SessionEvent } from './session-state-machine.js';
 
-const PHOTO_COUNT = 4;
+const PHOTO_COUNT = 3;
 const MAX_CAPTURE_BYTES = 50 * 1024 * 1024;
 
 export type BoothWorkflowOptions = {
@@ -176,7 +176,7 @@ export class BoothWorkflow {
   acceptPhotos(): BoothSnapshot {
     const session = this.requireActive();
     if (session.state !== 'review' || session.captureCount !== PHOTO_COUNT) {
-      throw new AppError('review_incomplete', 'Four photos are required before processing.');
+      throw new AppError('review_incomplete', 'Three photos are required before processing.');
     }
     this.transition(session, 'accept_photos', {}, this.now());
     this.emit();
@@ -317,9 +317,8 @@ export class BoothWorkflow {
         .filter((asset) => asset.kind === 'capture')
         .sort((left, right) => (left.shotNumber ?? 0) - (right.shotNumber ?? 0));
       if (assets.length !== PHOTO_COUNT)
-        throw new AppError('capture_count', 'Four photos are required.');
+        throw new AppError('capture_count', 'Three photos are required.');
       const captures = assets.map((asset) => this.vault.read(asset.encryptedPath)) as [
-        Buffer,
         Buffer,
         Buffer,
         Buffer,

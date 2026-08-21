@@ -43,6 +43,10 @@ export type RuntimeConfig = {
   now(): number;
 };
 
+export const DEFAULT_PROD_SUPABASE_URL = 'https://bejgkclvsfbkpkflftxu.supabase.co';
+export const DEFAULT_PROD_SUPABASE_PUBLISHABLE_KEY =
+  'sb_publishable_kOTsRWT42YKfBIfxTW2eHA_vPjE9j4O';
+
 export function loadRuntimeConfig(
   environment: NodeJS.ProcessEnv,
   isPackaged: boolean,
@@ -64,11 +68,16 @@ export function loadRuntimeConfig(
   const clockStartedAt = Date.now();
   const clockBase =
     e2eEnabled && parsed.GRACE_BOOTH_E2E_NOW_MS ? parsed.GRACE_BOOTH_E2E_NOW_MS : clockStartedAt;
+  
+  const cloudUrl = parsed.GRACE_BOOTH_SUPABASE_URL ?? (e2eEnabled ? null : DEFAULT_PROD_SUPABASE_URL);
+  const cloudPublishableKey =
+    parsed.GRACE_BOOTH_SUPABASE_PUBLISHABLE_KEY ?? (e2eEnabled ? null : DEFAULT_PROD_SUPABASE_PUBLISHABLE_KEY);
+
   return {
     cameraAdapter: parsed.GRACE_BOOTH_CAMERA_ADAPTER,
     cloud: {
-      url: parsed.GRACE_BOOTH_SUPABASE_URL ?? null,
-      publishableKey: parsed.GRACE_BOOTH_SUPABASE_PUBLISHABLE_KEY ?? null,
+      url: cloudUrl,
+      publishableKey: cloudPublishableKey,
     },
     e2e: {
       enabled: e2eEnabled,

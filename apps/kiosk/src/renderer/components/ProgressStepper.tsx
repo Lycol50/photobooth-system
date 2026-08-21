@@ -4,7 +4,7 @@ type ProgressStepperProps = {
   total?: number;
 };
 
-export function ProgressStepper({ activeStep, label, total = 4 }: ProgressStepperProps) {
+export function ProgressStepper({ activeStep, label, total = 3 }: ProgressStepperProps) {
   const safeActiveStep = Math.max(1, Math.min(total, activeStep));
 
   return (

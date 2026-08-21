@@ -24,7 +24,7 @@ export type DeliveryClient = {
   connect(email: string, password: string): Promise<void>;
   createUpload(request: CreateUploadRequest): Promise<CreateUploadResponse>;
   resumeUpload(request: ResumeUploadRequest): Promise<ResumeUploadResponse>;
-  uploadSigned(path: string, token: string, bytes: Uint8Array): Promise<void>;
+  uploadSigned(path: string, token: string, bytes: Uint8Array, uploadUrl?: string): Promise<void>;
   confirmUpload(request: ConfirmUploadRequest): Promise<ConfirmUploadResponse>;
   health(): Promise<{ healthy: boolean; code: string | null; message: string }>;
 };
@@ -115,7 +115,34 @@ export class SupabaseDeliveryClient implements DeliveryClient {
     return ResumeUploadResponseSchema.parse(await this.invokeFunction('create-upload', request));
   }
 
-  async uploadSigned(path: string, token: string, bytes: Uint8Array): Promise<void> {
+  async uploadSigned(
+    path: string,
+    token: string,
+    bytes: Uint8Array,
+    uploadUrl?: string,
+  ): Promise<void> {
+    if (uploadUrl) {
+      try {
+        const response = await fetchWithTimeout(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'content-type': 'image/jpeg',
+          },
+          body: bytes,
+        });
+        if (!response.ok) {
+          throwSignedUploadFailure({
+            status: response.status,
+            message: `Cloudflare R2 upload returned HTTP ${response.status}`,
+          });
+        }
+        return;
+      } catch (error) {
+        if (error instanceof DeliveryFailure) throw error;
+        throwSignedUploadFailure(error);
+      }
+    }
+
     const client = this.requireClient();
     try {
       const { error } = await client.storage

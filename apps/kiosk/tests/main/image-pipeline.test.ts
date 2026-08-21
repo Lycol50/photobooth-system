@@ -12,14 +12,14 @@ import {
 import { ImagePipeline } from '../../src/main/image/image-pipeline.js';
 import { DEFAULT_FRAME_SLOTS } from '../../src/main/frame/frame-service.js';
 
-let fixturePhotos: [Buffer, Buffer, Buffer, Buffer];
+let fixturePhotos: [Buffer, Buffer, Buffer];
 let fixtureFrame: Buffer;
 
 beforeAll(async () => {
   const root = fileURLToPath(new URL('../../resources/', import.meta.url));
   fixturePhotos = (await Promise.all(
-    [1, 2, 3, 4].map((index) => readFile(`${root}mock/photo-${index}.jpg`)),
-  )) as [Buffer, Buffer, Buffer, Buffer];
+    [1, 2, 3].map((index) => readFile(`${root}mock/photo-${index}.jpg`)),
+  )) as [Buffer, Buffer, Buffer];
   fixtureFrame = await readFile(`${root}frames/default-frame.png`);
 });
 
@@ -41,7 +41,7 @@ describe('deterministic Sharp collage pipeline', () => {
     expect(comparison.meanChannelDelta).toBeLessThanOrEqual(1.5);
     expect(comparison.fractionOverEight).toBeLessThanOrEqual(0.01);
     expect(golden.height).toBe(2_700);
-    expect(golden.width).toBe(2_160);
+    expect(golden.width).toBe(900);
     expect((await sharp(golden.bytes).metadata()).space).toBe('srgb');
   }, 30_000);
 
@@ -50,7 +50,6 @@ describe('deterministic Sharp collage pipeline', () => {
       { r: 235, g: 35, b: 35 },
       { r: 30, g: 210, b: 70 },
       { r: 35, g: 70, b: 230 },
-      { r: 235, g: 210, b: 35 },
     ];
     const captures = (await Promise.all(
       colors.map((background) =>
@@ -58,7 +57,7 @@ describe('deterministic Sharp collage pipeline', () => {
           .jpeg({ quality: 100, chromaSubsampling: '4:4:4' })
           .toBuffer(),
       ),
-    )) as [Buffer, Buffer, Buffer, Buffer];
+    )) as [Buffer, Buffer, Buffer];
     const result = await new ImagePipeline(new CenterCropStrategy()).process({
       captures,
       framePng: fixtureFrame,
@@ -72,8 +71,8 @@ describe('deterministic Sharp collage pipeline', () => {
       const centerX = Math.round((slot.x + slot.width / 2) * result.width);
       const samples = [
         { x: centerX, y: Math.round((slot.y + slot.height / 2) * result.height) },
-        { x: centerX, y: Math.round((slot.y + 0.01) * result.height) },
-        { x: centerX, y: Math.round((slot.y + slot.height - 0.01) * result.height) },
+        { x: centerX, y: Math.round((slot.y + 0.02) * result.height) },
+        { x: centerX, y: Math.round((slot.y + slot.height - 0.02) * result.height) },
       ];
       for (const sample of samples) {
         const pixel = await pixelAt(result.bytes, sample.x, sample.y);
@@ -83,15 +82,13 @@ describe('deterministic Sharp collage pipeline', () => {
       }
     }
 
-    // The card between the two columns stays opaque frame artwork, not guest photo.
-    const gutter = await pixelAt(
+    // Top header stays opaque frame artwork, not guest photo.
+    const header = await pixelAt(
       result.bytes,
       Math.round(0.5 * result.width),
-      Math.round(0.32 * result.height),
+      Math.round(0.04 * result.height),
     );
-    expect(gutter.r).toBeGreaterThan(240);
-    expect(gutter.g).toBeGreaterThan(240);
-    expect(gutter.b).toBeGreaterThan(240);
+    expect(header.r).toBeGreaterThan(100);
   }, 30_000);
 
   it('uses slotIndex rather than array order when selecting captures', async () => {
@@ -99,7 +96,6 @@ describe('deterministic Sharp collage pipeline', () => {
       { r: 235, g: 35, b: 35 },
       { r: 30, g: 210, b: 70 },
       { r: 35, g: 70, b: 230 },
-      { r: 235, g: 210, b: 35 },
     ];
     const captures = (await Promise.all(
       colors.map((background) =>
@@ -107,23 +103,24 @@ describe('deterministic Sharp collage pipeline', () => {
           .jpeg({ quality: 100, chromaSubsampling: '4:4:4' })
           .toBuffer(),
       ),
-    )) as [Buffer, Buffer, Buffer, Buffer];
-    const frame = await transparentPng(300, 200);
+    )) as [Buffer, Buffer, Buffer];
+    const frame = await transparentPng(300, 900);
     const slots = [...DEFAULT_FRAME_SLOTS].reverse();
     const result = await new ImagePipeline(new CenterCropStrategy()).process({
       captures,
       framePng: frame,
       slots,
-      longEdge: 2_500,
+      longEdge: 2_700,
     });
-    const topLeft = await pixelAt(
+    const slot1 = DEFAULT_FRAME_SLOTS[0]!;
+    const topSlot = await pixelAt(
       result.bytes,
-      Math.round(result.width * 0.25),
-      Math.round(result.height * 0.25),
+      Math.round(result.width * (slot1.x + slot1.width / 2)),
+      Math.round(result.height * (slot1.y + slot1.height / 2)),
     );
-    expect(topLeft.r).toBeGreaterThan(200);
-    expect(topLeft.g).toBeLessThan(80);
-    expect(topLeft.b).toBeLessThan(80);
+    expect(topSlot.r).toBeGreaterThan(200);
+    expect(topSlot.g).toBeLessThan(80);
+    expect(topSlot.b).toBeLessThan(80);
   }, 20_000);
 
   it('keeps fit letterboxing distinct from crop-to-fill', async () => {
@@ -132,20 +129,21 @@ describe('deterministic Sharp collage pipeline', () => {
     })
       .jpeg({ quality: 100 })
       .toBuffer();
-    const frame = await transparentPng(300, 200);
+    const frame = await transparentPng(300, 900);
     const fitSlots = DEFAULT_FRAME_SLOTS.map((slot) =>
       slot.slotIndex === 1 ? { ...slot, cropMode: 'fit' as const } : slot,
     );
     const result = await new ImagePipeline(new CenterCropStrategy()).process({
-      captures: [wide, wide, wide, wide],
+      captures: [wide, wide, wide],
       framePng: frame,
       slots: fitSlots,
-      longEdge: 2_500,
+      longEdge: 2_700,
     });
+    const slot1 = DEFAULT_FRAME_SLOTS[0]!;
     const letterbox = await pixelAt(
       result.bytes,
-      Math.round(result.width * 0.25),
-      Math.round(result.height * 0.08),
+      Math.round(result.width * (slot1.x + slot1.width / 2)),
+      Math.round(result.height * (slot1.y + 0.01)),
     );
     expect(letterbox.r).toBeGreaterThan(220);
     expect(letterbox.g).toBeGreaterThan(220);
@@ -159,16 +157,16 @@ describe('deterministic Sharp collage pipeline', () => {
       .jpeg()
       .withMetadata({ orientation: 6 })
       .toBuffer();
-    const frame = await transparentPng(300, 200);
+    const frame = await transparentPng(300, 900);
     const fallback = new ImagePipeline(
       new FaceAwareWithCenterFallback(new MediaPipeCropStrategy()),
     );
     const center = new ImagePipeline(new CenterCropStrategy());
     const input = {
-      captures: [oriented, oriented, oriented, oriented],
+      captures: [oriented, oriented, oriented],
       framePng: frame,
       slots: DEFAULT_FRAME_SLOTS,
-      longEdge: 2_500,
+      longEdge: 2_700,
     } as const;
     const [fallbackResult, centerResult] = await Promise.all([
       fallback.process(input),
@@ -185,7 +183,6 @@ describe('deterministic Sharp collage pipeline', () => {
           Buffer,
           Buffer,
           Buffer,
-          Buffer,
         ],
         framePng: fixtureFrame,
         slots: DEFAULT_FRAME_SLOTS,
@@ -194,7 +191,7 @@ describe('deterministic Sharp collage pipeline', () => {
     const opaque = await sharp({
       create: {
         width: 300,
-        height: 200,
+        height: 900,
         channels: 4,
         background: { r: 255, g: 255, b: 255, alpha: 1 },
       },

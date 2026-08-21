@@ -25,9 +25,9 @@ function ok<T>(data: T): RpcResult<T> {
 
 const FRAME = {
   id: FRAME_ID,
-  name: 'Grace Booth Classic.png',
-  width: 2700,
-  height: 1800,
+  name: 'CCF Alabang Ministry Fair Strip',
+  width: 1200,
+  height: 3600,
   byteSize: 44_090,
   mediaUrl: '/frames/default-frame.png',
   revision: 1,
@@ -35,37 +35,28 @@ const FRAME = {
     {
       slotIndex: 1,
       name: 'Photo 1',
-      x: 0.04,
-      y: 0.14,
-      width: 0.44,
-      height: 0.32,
+      x: 0.171667,
+      y: 0.161667,
+      width: 0.581667,
+      height: 0.158056,
       cropMode: 'crop-to-fill',
     },
     {
       slotIndex: 2,
       name: 'Photo 2',
-      x: 0.52,
-      y: 0.14,
-      width: 0.44,
-      height: 0.32,
+      x: 0.151667,
+      y: 0.4225,
+      width: 0.57,
+      height: 0.151667,
       cropMode: 'crop-to-fill',
     },
     {
       slotIndex: 3,
       name: 'Photo 3',
-      x: 0.04,
-      y: 0.5,
-      width: 0.44,
-      height: 0.32,
-      cropMode: 'crop-to-fill',
-    },
-    {
-      slotIndex: 4,
-      name: 'Photo 4',
-      x: 0.52,
-      y: 0.5,
-      width: 0.44,
-      height: 0.32,
+      x: 0.258333,
+      y: 0.713611,
+      width: 0.5325,
+      height: 0.144167,
       cropMode: 'crop-to-fill',
     },
   ],
@@ -99,7 +90,7 @@ const HEALTH: AdminHealth = {
 
 const ATTRACT: BoothSnapshot = {
   screen: 'attract',
-  state: 'attract',
+  state: null,
   sessionId: null,
   shotNumber: null,
   captureCount: 0,
@@ -118,11 +109,27 @@ const ATTRACT: BoothSnapshot = {
   message: null,
 };
 
-function sessionSnapshot(update: Partial<BoothSnapshot>): BoothSnapshot {
+function sessionSnapshot(patch: Partial<BoothSnapshot> = {}): BoothSnapshot {
   return {
-    ...ATTRACT,
+    screen: 'countdown',
+    state: 'countdown',
     sessionId: SESSION_ID,
-    ...update,
+    shotNumber: 1,
+    captureCount: 0,
+    countdownEndsAt: Date.now() + 5_000,
+    cameraPreviewEnabled: false,
+    media: { captureUrls: [], collageUrl: null, qrImageUrl: null },
+    controls: {
+      canStart: false,
+      canRetakeAll: false,
+      canAcceptPhotos: false,
+      canRetryUpload: false,
+      canFinishOffline: false,
+      canFinish: false,
+    },
+    errorCode: null,
+    message: null,
+    ...patch,
   };
 }
 
@@ -146,6 +153,9 @@ function createBridge(initial: BoothSnapshot = ATTRACT): BridgeHarness {
       }),
     ),
   );
+  const restartSessionMock = vi
+    .fn<GraceBoothBridge['admin']['restartSession']>()
+    .mockResolvedValue(ok(ATTRACT));
   const getAuthStatusMock = vi
     .fn<GraceBoothBridge['admin']['getAuthStatus']>()
     .mockResolvedValue(ok({ configured: true, authenticated: false, expiresAt: null }));
@@ -154,9 +164,7 @@ function createBridge(initial: BoothSnapshot = ATTRACT): BridgeHarness {
     .mockResolvedValue(
       ok({ configured: true, authenticated: true, expiresAt: Date.now() + 60_000 }),
     );
-  const restartSessionMock = vi
-    .fn<GraceBoothBridge['admin']['restartSession']>()
-    .mockResolvedValue(ok(ATTRACT));
+
   const bridge: GraceBoothBridge = {
     booth: {
       getSnapshot: vi.fn().mockResolvedValue(ok(initial)),
@@ -165,7 +173,7 @@ function createBridge(initial: BoothSnapshot = ATTRACT): BridgeHarness {
       acceptPhotos: vi.fn().mockResolvedValue(ok(initial)),
       retryUpload: vi.fn().mockResolvedValue(ok(initial)),
       finishOffline: vi.fn().mockResolvedValue(ok(initial)),
-      done: vi.fn().mockResolvedValue(ok(ATTRACT)),
+      done: vi.fn().mockResolvedValue(ok(initial)),
       getCameras: vi.fn().mockResolvedValue(
         ok({
           adapter: 'webcam' as const,
@@ -229,7 +237,7 @@ function createBridge(initial: BoothSnapshot = ATTRACT): BridgeHarness {
   return {
     bootstrapPasscodeMock,
     bridge,
-    emit: (snapshot) => {
+    emit: (snapshot: BoothSnapshot) => {
       if (!listener) {
         throw new Error('Booth listener has not been installed');
       }
@@ -269,7 +277,7 @@ describe('App guest flow', () => {
     await user.click(screen.getByRole('button', { name: /start photo session/i }));
 
     expect(await screen.findByTestId('capture-screen')).toHaveAttribute('data-phase', 'countdown');
-    expect(screen.getByText('Photo 1 of 4')).toBeVisible();
+    expect(screen.getByText('Photo 1 of 3')).toBeVisible();
     expect(harness.startMock).toHaveBeenCalledOnce();
   });
 
@@ -284,13 +292,12 @@ describe('App guest flow', () => {
         sessionSnapshot({
           screen: 'review',
           state: 'review',
-          captureCount: 4,
+          captureCount: 3,
           media: {
             captureUrls: [
               '/mock/photo-1.jpg',
               '/mock/photo-2.jpg',
               '/mock/photo-3.jpg',
-              '/mock/photo-4.jpg',
             ],
             collageUrl: null,
             qrImageUrl: null,

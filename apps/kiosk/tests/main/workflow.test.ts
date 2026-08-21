@@ -80,7 +80,7 @@ describe('booth workflow camera recovery', () => {
     const sessionId = randomUUID();
     testStore.repository.createSession(sessionId, 1_000);
     testStore.database.raw
-      .prepare("UPDATE sessions SET state = 'uploading', capture_count = 4 WHERE id = ?")
+      .prepare("UPDATE sessions SET state = 'uploading', capture_count = 3 WHERE id = ?")
       .run(sessionId);
 
     const imageProcessor: ImageProcessor = {

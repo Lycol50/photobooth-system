@@ -119,3 +119,31 @@ export function photoBucket(): string {
   }
   return value;
 }
+
+export function isR2Configured(): boolean {
+  const accountId = Deno.env.get('R2_ACCOUNT_ID')?.trim();
+  const accessKeyId = Deno.env.get('R2_ACCESS_KEY_ID')?.trim();
+  const secretAccessKey = Deno.env.get('R2_SECRET_ACCESS_KEY')?.trim();
+  return Boolean(accountId && accessKeyId && secretAccessKey);
+}
+
+export function r2AccountId(): string {
+  return required('R2_ACCOUNT_ID');
+}
+
+export function r2AccessKeyId(): string {
+  return required('R2_ACCESS_KEY_ID');
+}
+
+export function r2SecretAccessKey(): string {
+  return required('R2_SECRET_ACCESS_KEY');
+}
+
+export function r2BucketName(): string {
+  return Deno.env.get('R2_BUCKET_NAME')?.trim() || Deno.env.get('PHOTO_BUCKET')?.trim() || 'grace-booth-photos';
+}
+
+export function r2PublicDomain(): string | null {
+  return Deno.env.get('R2_PUBLIC_DOMAIN')?.trim() || null;
+}
+

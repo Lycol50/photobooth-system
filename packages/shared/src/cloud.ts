@@ -33,7 +33,8 @@ export type ResumeUploadRequest = z.infer<typeof ResumeUploadRequestSchema>;
 export const UploadAuthorizationSchema = z
   .object({
     storagePath: z.string().min(1).max(500),
-    signedUploadToken: z.string().min(20).max(4_096),
+    signedUploadToken: z.string().min(1).max(8_192),
+    uploadUrl: z.string().url().optional(),
     validForSeconds: z.literal(7_200),
   })
   .strict();

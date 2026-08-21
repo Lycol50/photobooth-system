@@ -1,8 +1,9 @@
 import { byteaToHex, constantTimeEqual } from '../_shared/encoding.ts';
 import { ApiError } from '../_shared/errors.ts';
-import { photoBucket, publicPageOrigin } from '../_shared/env.ts';
+import { isR2Configured, photoBucket, publicPageOrigin } from '../_shared/env.ts';
 import { assertPost, errorResponse, jsonResponse, readJson, requestId } from '../_shared/http.ts';
 import { assertExpectedJpeg } from '../_shared/jpeg.ts';
+import { createR2Client, getR2ObjectBytes } from '../_shared/r2.ts';
 import { ConfirmUploadSchema, parseWithSchema } from '../_shared/schemas.ts';
 import { authenticateBooth, createAdminClient } from '../_shared/supabase.ts';
 import { hashPublicToken, sha256Hex } from '../_shared/token.ts';
@@ -101,17 +102,26 @@ export async function handler(request: Request): Promise<Response> {
       throw new ApiError(409, 'conflict', 'This upload session can no longer be confirmed.');
     }
 
-    const { data: uploaded, error: downloadError } = await admin.storage
-      .from(photoBucket())
-      .download(session.storage_object_path);
-    if (downloadError || !uploaded) {
-      throw new ApiError(409, 'conflict', 'The uploaded image is not available yet.', true);
+    let bytes: Uint8Array;
+    if (isR2Configured()) {
+      const r2 = createR2Client();
+      const r2Bytes = await getR2ObjectBytes(r2, session.storage_object_path);
+      if (!r2Bytes) {
+        throw new ApiError(409, 'conflict', 'The uploaded image is not available yet.', true);
+      }
+      bytes = r2Bytes;
+    } else {
+      const { data: uploaded, error: downloadError } = await admin.storage
+        .from(photoBucket())
+        .download(session.storage_object_path);
+      if (downloadError || !uploaded) {
+        throw new ApiError(409, 'conflict', 'The uploaded image is not available yet.', true);
+      }
+      if (uploaded.type && uploaded.type.toLowerCase() !== session.content_type) {
+        throw new ApiError(422, 'conflict', 'The uploaded image has an unexpected content type.');
+      }
+      bytes = new Uint8Array(await uploaded.arrayBuffer());
     }
-    if (uploaded.type && uploaded.type.toLowerCase() !== session.content_type) {
-      throw new ApiError(422, 'conflict', 'The uploaded image has an unexpected content type.');
-    }
-
-    const bytes = new Uint8Array(await uploaded.arrayBuffer());
     assertExpectedJpeg(bytes, {
       byteSize: Number(session.byte_size),
       width: session.image_width,

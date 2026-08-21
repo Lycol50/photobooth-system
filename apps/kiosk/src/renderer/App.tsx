@@ -724,7 +724,7 @@ export function App() {
         <CaptureScreen
           phase={snapshot.screen}
           secondsRemaining={countdownSeconds}
-          shotNumber={snapshot.shotNumber ?? Math.min(4, snapshot.captureCount + 1)}
+          shotNumber={snapshot.shotNumber ?? Math.min(3, snapshot.captureCount + 1)}
           {...(liveCameraEnabled
             ? { liveVideoRef: camera.videoRef, liveStreamReady: camera.ready }
             : {})}

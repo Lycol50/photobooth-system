@@ -14,10 +14,9 @@ type CaptureScreenProps = {
 };
 
 const POSE_COPY = [
-  'Big smiles & eyes on lens!',
-  'Try a playful pose!',
-  'Peace signs and hugs!',
-  'Grand celebratory finale!',
+  'Made to Serve · Warm smiles & eyes on lens!',
+  'Discover Your Gift · Fun & playful pose!',
+  'Ministry Fair · Grand celebratory finale!',
 ] as const;
 
 export function CaptureScreen({
@@ -27,7 +26,7 @@ export function CaptureScreen({
   liveVideoRef,
   liveStreamReady = false,
 }: CaptureScreenProps) {
-  const safeShot = Math.max(1, Math.min(4, shotNumber));
+  const safeShot = Math.max(1, Math.min(3, shotNumber));
   const poseSuggestion = POSE_COPY[safeShot - 1];
   const countdownHint = secondsRemaining <= 3 ? 'Hold your pose' : 'Get ready';
 

@@ -7,20 +7,20 @@ import {
   isAllowedGoogleFormsUrl,
 } from '../src/index.js';
 
-const slots = [1, 2, 3, 4].map((slotIndex) => ({
+const slots = [1, 2, 3].map((slotIndex) => ({
   slotIndex,
   name: `Photo ${slotIndex}`,
-  x: slotIndex % 2 === 0 ? 0.52 : 0.02,
-  y: slotIndex > 2 ? 0.52 : 0.02,
-  width: 0.46,
-  height: 0.46,
+  x: 0.1,
+  y: (slotIndex - 1) * 0.3,
+  width: 0.8,
+  height: 0.28,
   cropMode: 'crop-to-fill' as const,
 }));
 
 describe('shared boundary schemas', () => {
-  it('accepts exactly four normalized slots', () => {
-    expect(FrameLayoutSchema.parse(slots)).toHaveLength(4);
-    expect(() => FrameLayoutSchema.parse([...slots.slice(0, 3), slots[0]])).toThrow();
+  it('accepts exactly three normalized slots', () => {
+    expect(FrameLayoutSchema.parse(slots)).toHaveLength(3);
+    expect(() => FrameLayoutSchema.parse([...slots.slice(0, 2), slots[0]])).toThrow();
     expect(() => FrameLayoutSchema.parse([{ ...slots[0], x: 0.9 }, ...slots.slice(1)])).toThrow();
   });
 

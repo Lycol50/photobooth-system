@@ -51,7 +51,7 @@ export function ReviewScreen({
             <div className="photostrip-preview__header">
               <div className="photostrip-preview__brand">
                 <FilmStrip weight="bold" aria-hidden="true" />
-                <span>M.A.T. PHOTOBOOTH</span>
+                <span>CCF ALABANG</span>
               </div>
             </div>
 
@@ -60,14 +60,14 @@ export function ReviewScreen({
               role="region"
               aria-label="Captured photo frames"
             >
-              {Array.from({ length: 4 }, (_, index) => (
+              {Array.from({ length: 3 }, (_, index) => (
                 <PhotoSlot index={index + 1} key={index} src={captureUrls[index]} />
               ))}
             </div>
 
             <div className="photostrip-preview__footer">
               <div className="photostrip-preview__footer-brand">
-                <span>M.A.T. PHOTOBOOTH</span>
+                <span>MINISTRY FAIR</span>
               </div>
             </div>
 
@@ -87,12 +87,12 @@ export function ReviewScreen({
           <div className="review-panel__header">
             <div className="capture-complete-badge">
               <CheckCircle aria-hidden="true" weight="bold" />
-              <span>All 4 photos captured</span>
+              <span>All 3 photos captured</span>
             </div>
             <h1 id="review-title" data-screen-heading ref={headingRef} tabIndex={-1}>
               Review your photos
             </h1>
-            <p>Check your four-photo strip. Retake if you want another try, or continue to finish your collage.</p>
+            <p>Check your three-photo strip. Retake if you want another try, or continue to finish your collage.</p>
           </div>
 
           <div className="review-actions">
