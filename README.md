@@ -62,7 +62,7 @@ GRACE_BOOTH_SUPABASE_PUBLISHABLE_KEY=sb_publishable_REPLACE_ME
 
 Set both Supabase values or leave both unset. Never put a Supabase secret/service-role key in the kiosk configuration. The kiosk accepts only a publishable/anon key.
 
-Development builds load local `.env` files. Packaged builds deliberately do not. Configure a packaged booth through the operator panel, or use persistent Windows user/system environment variables when an OS-level override is required.
+Development builds load local `.env` files. Packaged builds deliberately do not. The official packaged build already contains the production Supabase project URL and publishable key; a kiosk using that project should not set cloud environment variables or enter replacement project values. Environment-variable and operator-panel project overrides are for custom deployments that intentionally use a different Supabase project.
 
 ### Start the development kiosk
 
@@ -85,11 +85,13 @@ On the first successful launch:
 2. Open **Admin**, enter the passcode, and select **Settings & Health**.
 3. Under **Optical Capture Hardware**, choose **Configure Camera & Test Feed**.
 4. Select the built-in/USB webcam and confirm that the preview works.
-5. Under **Cloud connection**, enter the Supabase project URL, publishable/anon key, dedicated booth-account email, and booth-account password. Click **Connect cloud**.
-6. Confirm that camera, database, encrypted storage, and cloud health are reported correctly.
-7. Open **Frame Editor**. Verify the active transparent PNG and all three photo slots. Available layouts are **3-Strip**, **3-Stack**, and **Hero+2**.
-8. Save the frame layout, return to the booth, and complete one test session.
-9. Confirm all three five-second countdowns, Review/Retake, Processing, the final photostrip, QR scanning, download, and **Done** behavior.
+5. Obtain the dedicated booth-account email and password assigned to this laptop by the Supabase project owner. The installer does not need a Supabase Dashboard account.
+6. Under **Cloud connection**, leave **Supabase Project URL** and **Supabase Publishable / Anon Key** blank to use the production project embedded in the official build. Enter only the assigned booth-account email and password, then click **Connect cloud**.
+7. Never enter a Supabase Dashboard-owner password, `sb_secret_...` key, or legacy `service_role` key in the kiosk.
+8. Confirm that camera, database, encrypted storage, and cloud health are reported correctly.
+9. Open **Frame Editor**. Verify the active transparent PNG and all three photo slots. Available layouts are **3-Strip**, **3-Stack**, and **Hero+2**.
+10. Save the frame layout, return to the booth, and complete one test session.
+11. Confirm all three five-second countdowns, Review/Retake, Processing, the final photostrip, QR scanning, download, and **Done** behavior.
 
 LAN admin access is disabled by default. Enable it only on a trusted private network and configure the required TLS certificate first.
 
@@ -175,7 +177,26 @@ This directory contains the SQLite database, encrypted photo assets, protected s
 
 ## Cloud delivery setup
 
-The packaged kiosk can be pointed at an existing configured Supabase project from **Admin > Settings & Health > Cloud connection**. A production backend requires:
+All official kiosk installations use the same embedded Supabase project, database, and private photo Storage. Installing the application on another laptop does not create another Supabase project.
+
+### Responsibilities
+
+The Supabase project owner:
+
+1. Maintains the shared Supabase project and backend resources listed below.
+2. Creates a dedicated Supabase Auth booth user under **Authentication > Users**. This is an application user, not a Supabase Dashboard administrator.
+3. Enrolls that Auth user's ID in the project's `booth_devices` table.
+4. Supplies the assigned booth email and password securely to the person configuring the laptop.
+
+The installer/operator:
+
+1. Does not create a personal Supabase account and does not need Supabase Dashboard access.
+2. Leaves the project URL and publishable-key fields blank when installing the official build.
+3. Enters the assigned booth email and password once. The resulting session is protected locally by Windows DPAPI.
+
+For a custom deployment using a different Supabase project, the project owner—not the installer—gets the project URL from the project's **Connect** dialog and the `sb_publishable_...` key from **Settings > API Keys**. The owner may then supply those two non-secret client values with the booth credentials. See the official [Supabase API-key documentation](https://supabase.com/docs/guides/getting-started/api-keys) and [Auth user documentation](https://supabase.com/docs/guides/auth/users).
+
+Never distribute or enter a Supabase secret/service-role key in a desktop application. A production backend requires:
 
 - The repository Supabase migrations applied to the project.
 - A private `photos` Storage bucket accepting JPEG files.
@@ -298,9 +319,10 @@ On a network that blocks GitHub release downloads, configure an approved Electro
 1. Guest capture and local encrypted storage can continue while delivery retries.
 2. Check network access and system time.
 3. Open **Admin > Settings & Health** and review cloud health.
-4. Confirm the Supabase URL and publishable key belong to the same project.
-5. Reconnect the dedicated booth account if its session expired.
-6. Inspect **Upload Queue & Retry Buffer** and retry failed jobs after connectivity returns.
+4. For the official build, confirm the project URL and publishable-key fields were left blank unless the project owner explicitly supplied a custom-project pair.
+5. Confirm the assigned booth user is active and enrolled in `booth_devices`.
+6. Reconnect the dedicated booth account if its session expired.
+7. Inspect **Upload Queue & Retry Buffer** and retry failed jobs after connectivity returns.
 
 ### Logs and failure evidence
 
