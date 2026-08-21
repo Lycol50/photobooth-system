@@ -49,5 +49,7 @@ export const PHOTO_API_BASE_URL = apiUrl.toString().replace(/\/+$/u, '');
 export const EXPECTED_PAGE_ORIGIN = pageUrl.origin;
 
 export function isExpectedPageOrigin(): boolean {
-  return !import.meta.env.PROD || window.location.origin === EXPECTED_PAGE_ORIGIN;
+  if (!import.meta.env.PROD) return true;
+  if (window.location.origin === EXPECTED_PAGE_ORIGIN) return true;
+  return window.location.hostname.endsWith('.pages.dev');
 }

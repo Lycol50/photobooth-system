@@ -98,8 +98,28 @@ export function publicCorsHeaders(origin: string): HeadersInit {
   };
 }
 
+export function isAllowedOrigin(origin: string | null, allowedOrigin: string): boolean {
+  if (!origin) return false;
+  if (origin === allowedOrigin) return true;
+  try {
+    const url = new URL(origin);
+    const allowed = new URL(allowedOrigin);
+    if (
+      url.protocol === 'https:' &&
+      allowed.hostname.endsWith('.pages.dev') &&
+      (url.hostname === allowed.hostname || url.hostname.endsWith(`.${allowed.hostname}`))
+    ) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 export function assertExactOrigin(request: Request, allowedOrigin: string): void {
-  if (request.headers.get('origin') !== allowedOrigin) {
+  const origin = request.headers.get('origin');
+  if (!isAllowedOrigin(origin, allowedOrigin)) {
     throw new ApiError(403, 'forbidden', 'This request origin is not allowed.');
   }
 }
