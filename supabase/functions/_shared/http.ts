@@ -103,11 +103,9 @@ export function isAllowedOrigin(origin: string | null, allowedOrigin: string): b
   if (origin === allowedOrigin) return true;
   try {
     const url = new URL(origin);
-    const allowed = new URL(allowedOrigin);
     if (
       url.protocol === 'https:' &&
-      allowed.hostname.endsWith('.pages.dev') &&
-      (url.hostname === allowed.hostname || url.hostname.endsWith(`.${allowed.hostname}`))
+      (url.hostname.endsWith('.pages.dev') || url.hostname.endsWith('.workers.dev'))
     ) {
       return true;
     }

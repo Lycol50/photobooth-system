@@ -51,5 +51,8 @@ export const EXPECTED_PAGE_ORIGIN = pageUrl.origin;
 export function isExpectedPageOrigin(): boolean {
   if (!import.meta.env.PROD) return true;
   if (window.location.origin === EXPECTED_PAGE_ORIGIN) return true;
-  return window.location.hostname.endsWith('.pages.dev');
+  return (
+    window.location.hostname.endsWith('.pages.dev') ||
+    window.location.hostname.endsWith('.workers.dev')
+  );
 }
