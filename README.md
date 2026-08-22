@@ -89,9 +89,9 @@ On the first successful launch:
 6. Under **Cloud connection**, leave **Supabase Project URL** and **Supabase Publishable / Anon Key** blank to use the production project embedded in the official build. Enter only the assigned booth-account email and password, then click **Connect cloud**.
 7. Never enter a Supabase Dashboard-owner password, `sb_secret_...` key, or legacy `service_role` key in the kiosk.
 8. Confirm that camera, database, encrypted storage, and cloud health are reported correctly.
-9. Open **Frame Editor**. Verify the active transparent PNG and all three photo slots. Available layouts are **3-Strip**, **3-Stack**, and **Hero+2**.
-10. Save the frame layout, return to the booth, and complete one test session.
-11. Confirm all three five-second countdowns, Review/Retake, Processing, the final photostrip, QR scanning, download, and **Done** behavior.
+9. Open **Frame Editor** and switch between **Collage 1 · M.A.T.** and **Collage 2 · Anniversary**. Verify that each packaged frame has its own three photo-slot outlines. Replacing artwork or saving slot geometry affects only the active collage; there are no separate layout presets.
+10. Save only if you intentionally changed a frame or its slot geometry, return to the booth, and complete one test session.
+11. Confirm all three five-second countdowns, both choices on **Choose your collage**, Retake, Processing, the selected final photostrip, QR scanning, download, and **Done** behavior.
 
 LAN admin access is disabled by default. Enable it only on a trusted private network and configure the required TLS certificate first.
 
@@ -99,9 +99,9 @@ LAN admin access is disabled by default. Enable it only on a trusted private net
 
 1. The **Ministry Fair** attract screen starts a new session.
 2. The camera takes three photos, each beginning with a five-second countdown.
-3. **Review your photos** shows all three captures in the same frame geometry used by the final photostrip.
-4. **Retake all photos** restarts the complete sequence; **Use these photos** continues.
-5. **Processing** creates the collage locally and performs delivery.
+3. **Choose your collage** previews all three captures in both the M.A.T. and Anniversary frames, using the same slot geometry as the generated result.
+4. Select the desired collage. **Retake all photos** restarts the complete sequence; **Use these photos** continues with the selected frame.
+5. **Processing** creates the selected collage locally and performs delivery.
 6. **All set!** shows the complete photostrip and a scannable QR code.
 7. **Done** ends the session and returns to the attract screen.
 
@@ -157,6 +157,16 @@ Build outputs:
 - Unpacked application: `apps/kiosk/release/win-unpacked/Grace Booth.exe`
 
 The Sharp messages about Darwin, Linux, ARM, or musl optional packages are cross-platform packaging notices. They are not a Windows x64 failure when the final packaged native self-test passes.
+
+### 5. Verify packaged startup
+
+After `pnpm dist:win` succeeds, run the packaged startup smoke test on the build computer:
+
+```powershell
+pnpm --filter @grace-booth/kiosk startup:smoke:packaged
+```
+
+The test launches `release/win-unpacked/Grace Booth.exe` with an isolated temporary profile, completes the first-run passcode screen when needed, verifies that the **Ministry Fair** attract screen remains healthy, writes `test-results/packaged-attract.png`, and closes the verification instance. It does not alter the normal kiosk profile under `%APPDATA%`.
 
 ## Install and start the packaged app
 
@@ -217,6 +227,7 @@ pnpm --filter @grace-booth/kiosk test
 pnpm --filter @grace-booth/kiosk build
 pnpm native:self-test
 pnpm native:self-test:packaged
+pnpm --filter @grace-booth/kiosk startup:smoke:packaged
 ```
 
 Repository-wide checks:
@@ -229,13 +240,13 @@ pnpm format:check
 pnpm test:e2e
 ```
 
-`native:self-test:packaged` requires an existing `apps/kiosk/release/win-unpacked` package. Run `pnpm dist:win` first when it does not exist or is stale.
+`native:self-test:packaged` and `startup:smoke:packaged` require an existing `apps/kiosk/release/win-unpacked` package. Run `pnpm dist:win` first when it does not exist or is stale.
 
 ## Troubleshooting
 
 ### “Grace Booth could not start”
 
-The safety dialog intentionally does not expose internal details. The most common local cause is another kiosk process already using port 4310 or 4311.
+The safety dialog intentionally does not expose internal details. Common causes include another kiosk process using port 4310 or 4311, incomplete packaged native modules, missing packaged resources, or damaged local configuration.
 
 1. Close Grace Booth if it is already open.
 2. Stop any `pnpm dev:kiosk` terminal with `Ctrl+C`.
@@ -261,6 +272,15 @@ The safety dialog intentionally does not expose internal details. The most commo
    ```
 
 6. Start Grace Booth again. Reboot Windows if the verified stale process cannot be closed normally.
+
+On the build computer, test the package itself before copying the installer to another laptop:
+
+```powershell
+pnpm native:self-test:packaged
+pnpm --filter @grace-booth/kiosk startup:smoke:packaged
+```
+
+If the native self-test fails, rebuild the package as described below. If both checks pass and the installed copy still fails, inspect the newest log under `%APPDATA%\@grace-booth\kiosk\logs` before changing the local configuration.
 
 Do not delete `%APPDATA%\@grace-booth\kiosk` to resolve this error.
 
