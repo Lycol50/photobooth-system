@@ -69,23 +69,6 @@ function jobLabel(job: UploadJobSummary): string {
   return job.state.replaceAll('_', ' ');
 }
 
-function isGoogleFormsUrl(value: string): boolean {
-  if (value.trim() === '') {
-    return true;
-  }
-  try {
-    const url = new URL(value);
-    return (
-      url.protocol === 'https:' &&
-      (url.hostname === 'forms.gle' ||
-        url.hostname === 'forms.google.com' ||
-        (url.hostname === 'docs.google.com' && url.pathname.startsWith('/forms/')))
-    );
-  } catch {
-    return false;
-  }
-}
-
 export function AdminSettings({
   busy = false,
   error,
@@ -101,7 +84,6 @@ export function AdminSettings({
   settings,
   status,
 }: AdminSettingsProps) {
-  const [googleFormsUrl, setGoogleFormsUrl] = useState(settings.googleFormsUrl ?? '');
   const [lanEnabled, setLanEnabled] = useState(settings.lan.enabled);
   const [lanBindHost, setLanBindHost] = useState(settings.lan.bindHost);
   const [lanPort, setLanPort] = useState(String(settings.lan.port));
@@ -122,17 +104,13 @@ export function AdminSettings({
   const saveSettings = (event: SyntheticEvent<HTMLFormElement, SubmitEvent>) => {
     event.preventDefault();
     setLocalError(null);
-    if (!isGoogleFormsUrl(googleFormsUrl)) {
-      setLocalError('Enter a valid HTTPS Google Forms URL.');
-      return;
-    }
     const parsedPort = Number(lanPort);
     if (!Number.isInteger(parsedPort) || parsedPort < 1024 || parsedPort > 65535) {
       setLocalError('LAN port must be between 1024 and 65535.');
       return;
     }
     onSaveSettings({
-      googleFormsUrl: googleFormsUrl.trim() || null,
+      googleFormsUrl: settings.googleFormsUrl,
       lanEnabled,
       lanBindHost,
       lanPort: parsedPort,
@@ -166,7 +144,11 @@ export function AdminSettings({
       return;
     }
     let formattedUrl = supabaseUrl.trim();
-    if (formattedUrl && !formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+    if (
+      formattedUrl &&
+      !formattedUrl.startsWith('http://') &&
+      !formattedUrl.startsWith('https://')
+    ) {
       formattedUrl = `https://${formattedUrl}`;
     }
     onConnectCloud(
@@ -221,7 +203,10 @@ export function AdminSettings({
         <section className="settings-section" aria-labelledby="health-title">
           <div className="settings-section__heading">
             <h2 id="health-title">SYSTEM HEALTH &amp; SUBSYSTEMS</h2>
-            <p>Live diagnostics across optical hardware, database, encrypted storage, and cloud gateway.</p>
+            <p>
+              Live diagnostics across optical hardware, database, encrypted storage, and cloud
+              gateway.
+            </p>
           </div>
           <div className="health-grid">
             {(Object.keys(HEALTH_ICONS) as (keyof typeof HEALTH_ICONS)[]).map((key) => {
@@ -233,7 +218,9 @@ export function AdminSettings({
                   <Icon aria-hidden="true" weight="bold" />
                   <div>
                     <strong>{key.toUpperCase()}</strong>
-                    <span className={`health-state health-state--${state}`}>{state.toUpperCase()}</span>
+                    <span className={`health-state health-state--${state}`}>
+                      {state.toUpperCase()}
+                    </span>
                   </div>
                   <p>{service?.message ?? 'Subsystem telemetry offline.'}</p>
                 </article>
@@ -285,21 +272,10 @@ export function AdminSettings({
             <div className="settings-card__title">
               <LinkSimple aria-hidden="true" weight="bold" />
               <div>
-                <h2>Photo delivery</h2>
-                <p>Registration is optional and never blocks a photo download.</p>
+                <h2>Network &amp; delivery</h2>
+                <p>Configure local network access for kiosk operations.</p>
               </div>
             </div>
-            <label htmlFor="forms-url">Google Forms URL</label>
-            <input
-              id="forms-url"
-              onChange={(event) => setGoogleFormsUrl(event.target.value)}
-              placeholder="https://forms.gle/..."
-              type="url"
-              value={googleFormsUrl}
-            />
-            <span className="field-help">
-              Leave blank to hide the ministry registration button.
-            </span>
             <fieldset className="lan-fieldset">
               <legend>Trusted network access</legend>
               <label className="switch-row">
@@ -361,7 +337,11 @@ export function AdminSettings({
                 </Button>
               </div>
             </fieldset>
-            <Button icon={<CheckCircle aria-hidden="true" weight="bold" />} loading={busy} type="submit">
+            <Button
+              icon={<CheckCircle aria-hidden="true" weight="bold" />}
+              loading={busy}
+              type="submit"
+            >
               Save settings
             </Button>
           </form>
@@ -385,7 +365,8 @@ export function AdminSettings({
               </div>
             </div>
             <p>
-              <LockKey aria-hidden="true" weight="bold" /> Retention periods cannot be changed from the booth.
+              <LockKey aria-hidden="true" weight="bold" /> Retention periods cannot be changed from
+              the booth.
             </p>
           </article>
         </section>
@@ -489,7 +470,11 @@ export function AdminSettings({
                 />
               </label>
             </div>
-            <Button icon={<LockKey aria-hidden="true" weight="bold" />} loading={busy} type="submit">
+            <Button
+              icon={<LockKey aria-hidden="true" weight="bold" />}
+              loading={busy}
+              type="submit"
+            >
               Change passcode
             </Button>
           </form>
@@ -535,7 +520,11 @@ export function AdminSettings({
               type="password"
               value={cloudPassword}
             />
-            <Button icon={<ShieldCheck aria-hidden="true" weight="bold" />} loading={busy} type="submit">
+            <Button
+              icon={<ShieldCheck aria-hidden="true" weight="bold" />}
+              loading={busy}
+              type="submit"
+            >
               Connect cloud
             </Button>
           </form>

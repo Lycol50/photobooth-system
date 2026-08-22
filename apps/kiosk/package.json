@@ -16,7 +16,9 @@
     "dist:win": "pnpm build && electron-builder --config electron-builder.yml --win nsis --x64 && pnpm native:self-test:packaged",
     "native:self-test": "pnpm build && tsx scripts/native-self-test.ts",
     "native:self-test:packaged": "tsx scripts/native-self-test.ts --packaged",
+    "startup:smoke:packaged": "tsx scripts/packaged-startup-smoke.ts",
     "resources:generate": "node scripts/generate-resources.mjs",
+    "frames:prepare": "node scripts/prepare-anniversary-frames.mjs",
     "frame:build": "node scripts/build-default-frame.mjs",
     "frame:verify": "node scripts/verify-default-frame.mjs"
   },

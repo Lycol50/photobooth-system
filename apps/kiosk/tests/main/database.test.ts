@@ -60,4 +60,29 @@ describe('checked-in local migration', () => {
         .run(),
     ).toThrow();
   });
+
+  it('persists collage_2_frame_id on settings and selectedOption/selectedFrameId on sessions', () => {
+    store = createTestStore();
+    const frame1Id = randomUUID();
+    const frame2Id = randomUUID();
+    store.repository.setCollageFrameId(1, frame1Id);
+    store.repository.setCollageFrameId(2, frame2Id);
+
+    const settingsRow = store.repository.getSettings();
+    expect(settingsRow.activeFrameId).toBe(frame1Id);
+    expect(settingsRow.collage2FrameId).toBe(frame2Id);
+
+    const sessionId = randomUUID();
+    store.repository.createSession(sessionId, 1_000);
+    const session = store.repository.transitionSession(sessionId, ['countdown'], 'review', {
+      selectedOption: 2,
+      selectedFrameId: frame2Id,
+    });
+    expect(session.selectedOption).toBe(2);
+    expect(session.selectedFrameId).toBe(frame2Id);
+
+    const retaken = store.repository.startRetakeRound(sessionId, 2_000);
+    expect(retaken.selectedOption).toBe(1);
+    expect(retaken.selectedFrameId).toBeNull();
+  });
 });

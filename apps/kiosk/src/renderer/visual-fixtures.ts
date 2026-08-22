@@ -7,6 +7,7 @@ import type {
 } from '@grace-booth/shared';
 
 import type { AdminView } from './types';
+import { ANNIVERSARY_FRAME_LAYOUT, DEFAULT_FRAME_LAYOUT, LOCAL_FIXTURES } from './local-fixtures';
 
 export type VisualSeedPayload = {
   adminView: AdminView | null;
@@ -37,41 +38,21 @@ const CAPTURE_URLS = ['/mock/photo-1.jpg', '/mock/photo-2.jpg', '/mock/photo-3.j
 
 const DEFAULT_FRAME: FrameSummary = {
   id: FRAME_ID,
-  name: 'CCF Alabang Ministry Fair Strip',
+  name: 'M.A.T. 42nd Anniversary',
   width: 1200,
   height: 3600,
   byteSize: 44_090,
-  mediaUrl: '/frames/default-frame.png',
+  mediaUrl: LOCAL_FIXTURES.matFrame,
   revision: 3,
-  slots: [
-    {
-      slotIndex: 1,
-      name: 'Photo 1',
-      x: 0.171667,
-      y: 0.161667,
-      width: 0.581667,
-      height: 0.158056,
-      cropMode: 'crop-to-fill',
-    },
-    {
-      slotIndex: 2,
-      name: 'Photo 2',
-      x: 0.151667,
-      y: 0.4225,
-      width: 0.57,
-      height: 0.151667,
-      cropMode: 'crop-to-fill',
-    },
-    {
-      slotIndex: 3,
-      name: 'Photo 3',
-      x: 0.258333,
-      y: 0.713611,
-      width: 0.5325,
-      height: 0.144167,
-      cropMode: 'crop-to-fill',
-    },
-  ],
+  slots: DEFAULT_FRAME_LAYOUT,
+};
+
+const DEFAULT_FRAME_2: FrameSummary = {
+  ...DEFAULT_FRAME,
+  id: '00000000-0000-4000-8000-000000000002',
+  name: 'CCF Alabang 42nd Anniversary',
+  mediaUrl: LOCAL_FIXTURES.annivFrame,
+  slots: ANNIVERSARY_FRAME_LAYOUT,
 };
 
 const SETTINGS: AdminSettings = {
@@ -86,6 +67,7 @@ const SETTINGS: AdminSettings = {
     certificateFingerprint: null,
   },
   activeFrame: DEFAULT_FRAME,
+  frames: [DEFAULT_FRAME, DEFAULT_FRAME_2],
   cameraAdapter: 'mock',
   cameraDeviceId: null,
   supabaseUrl: null,
@@ -262,6 +244,7 @@ export async function createVisualSeedPayload(
           captureUrls: CAPTURE_URLS,
           collageUrl: null,
           frame: DEFAULT_FRAME,
+          frames: [DEFAULT_FRAME, DEFAULT_FRAME_2],
           qrImageUrl: null,
         },
         controls: { canRetakeAll: true, canAcceptPhotos: true },

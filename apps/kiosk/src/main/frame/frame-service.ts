@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 import type { FrameLayout, FrameSummary } from '@grace-booth/shared';
@@ -12,58 +12,146 @@ import type { PhotoVault } from '../storage/photo-vault.js';
 /** 1:3 Vertical photobooth strip aspect of the CCF Alabang Ministry Fair frame (1200 x 3600 pixels). */
 export const SUPPORTED_FRAME_ASPECT = 1 / 3;
 const FRAME_ASPECT_TOLERANCE = 0.02;
+const LEGACY_MINISTRY_FAIR_FRAME_SHA256 =
+  'a0a3dfacd86a4a458e1cf510b4a19a395cdafc1c2373863adac083b79603a2eb';
 
 /**
  * Normalized photo slots calibrated against the transparent camera LCD cutouts in the default 3-strip frame.
  */
-export const DEFAULT_FRAME_SLOTS: FrameLayout = FrameLayoutSchema.parse([
+export const MAT_FRAME_SLOTS: FrameLayout = FrameLayoutSchema.parse([
   {
     slotIndex: 1,
     name: 'Photo 1',
-    x: 0.171667,
-    y: 0.161667,
-    width: 0.581667,
-    height: 0.158056,
+    x: 0.25,
+    y: 0.295556,
+    width: 0.538333,
+    height: 0.142778,
     cropMode: 'crop-to-fill',
   },
   {
     slotIndex: 2,
     name: 'Photo 2',
-    x: 0.151667,
-    y: 0.4225,
-    width: 0.57,
-    height: 0.151667,
+    x: 0.138333,
+    y: 0.491667,
+    width: 0.553333,
+    height: 0.147778,
     cropMode: 'crop-to-fill',
   },
   {
     slotIndex: 3,
     name: 'Photo 3',
-    x: 0.258333,
-    y: 0.713611,
-    width: 0.5325,
-    height: 0.144167,
+    x: 0.271667,
+    y: 0.742778,
+    width: 0.465,
+    height: 0.126667,
     cropMode: 'crop-to-fill',
   },
 ]);
 
-export const DEFAULT_FRAME_NAME = 'CCF Alabang Ministry Fair Strip';
+export const ANNIVERSARY_FRAME_SLOTS: FrameLayout = FrameLayoutSchema.parse([
+  {
+    slotIndex: 1,
+    name: 'Photo 1',
+    x: 0.068333,
+    y: 0.28,
+    width: 0.86,
+    height: 0.166111,
+    cropMode: 'crop-to-fill',
+  },
+  {
+    slotIndex: 2,
+    name: 'Photo 2',
+    x: 0.065,
+    y: 0.487778,
+    width: 0.86,
+    height: 0.166667,
+    cropMode: 'crop-to-fill',
+  },
+  {
+    slotIndex: 3,
+    name: 'Photo 3',
+    x: 0.068333,
+    y: 0.696667,
+    width: 0.86,
+    height: 0.166667,
+    cropMode: 'crop-to-fill',
+  },
+]);
+
+export const DEFAULT_FRAME_SLOTS = MAT_FRAME_SLOTS;
+export const MAT_FRAME_NAME = 'M.A.T. 42nd Anniversary';
+export const ANNIVERSARY_FRAME_NAME = 'CCF Alabang 42nd Anniversary';
+export const DEFAULT_FRAME_NAME = MAT_FRAME_NAME;
+
+type PackagedFramePaths = {
+  option1: string;
+  option2: string;
+};
+
+type PackagedFrameDefinition = {
+  name: string;
+  path: string;
+  slots: FrameLayout;
+};
 
 export class FrameService {
   constructor(
     private readonly repository: LocalRepository,
     private readonly vault: PhotoVault,
-    private readonly defaultFramePath: string,
+    private readonly packagedFramePaths: PackagedFramePaths,
     private readonly imageProcessor: ImageProcessor,
   ) {}
 
+  async ensureDefaultFrames(): Promise<{ option1: StoredFrame; option2: StoredFrame }> {
+    const existingOptions = this.repository.getFrameOptions();
+    const definitions: [PackagedFrameDefinition, PackagedFrameDefinition] = [
+      {
+        name: MAT_FRAME_NAME,
+        path: this.packagedFramePaths.option1,
+        slots: MAT_FRAME_SLOTS,
+      },
+      {
+        name: ANNIVERSARY_FRAME_NAME,
+        path: this.packagedFramePaths.option2,
+        slots: ANNIVERSARY_FRAME_SLOTS,
+      },
+    ];
+    const [option1Bytes, option2Bytes] = await Promise.all([
+      readFile(definitions[0].path),
+      readFile(definitions[1].path),
+    ]);
+    const option1 = await this.ensurePackagedOption(
+      1,
+      existingOptions[0],
+      definitions[0],
+      option1Bytes,
+      existingOptions,
+    );
+    const option2 = await this.ensurePackagedOption(
+      2,
+      existingOptions[1],
+      definitions[1],
+      option2Bytes,
+      existingOptions,
+    );
+    return { option1, option2 };
+  }
+
   async ensureDefaultFrame(): Promise<StoredFrame> {
-    const active = this.repository.getActiveFrame();
-    const bytes = await readFile(this.defaultFramePath);
-    if (active && !isSupersededDefault(active, bytes)) return active;
-    return this.importFrame(DEFAULT_FRAME_NAME, bytes, DEFAULT_FRAME_SLOTS);
+    const { option1 } = await this.ensureDefaultFrames();
+    return option1;
   }
 
   async importFrame(
+    name: string,
+    bytes: Uint8Array,
+    slots: FrameLayout = DEFAULT_FRAME_SLOTS,
+  ): Promise<StoredFrame> {
+    return this.importFrameForOption(1, name, bytes, slots);
+  }
+
+  async importFrameForOption(
+    optionIndex: 1 | 2,
     name: string,
     bytes: Uint8Array,
     slots: FrameLayout = DEFAULT_FRAME_SLOTS,
@@ -92,7 +180,7 @@ export class FrameService {
       updatedAt: now,
     };
     try {
-      this.repository.addFrame(frame, validatedSlots);
+      this.repository.addFrame(frame, validatedSlots, optionIndex);
     } catch (error) {
       this.vault.delete(stored.relativePath);
       throw error;
@@ -100,6 +188,23 @@ export class FrameService {
     const saved = this.repository.getFrame(frame.id);
     if (!saved) throw new AppError('frame_missing', 'The frame could not be saved.');
     return saved;
+  }
+
+  getFrameOptions(): [StoredFrame | null, StoredFrame | null] {
+    return this.repository.getFrameOptions();
+  }
+
+  private async ensurePackagedOption(
+    optionIndex: 1 | 2,
+    existing: StoredFrame | null,
+    definition: PackagedFrameDefinition,
+    bytes: Uint8Array,
+    existingOptions: [StoredFrame | null, StoredFrame | null],
+  ): Promise<StoredFrame> {
+    if (existing && !isReplaceablePackagedDefault(optionIndex, existing, bytes, existingOptions)) {
+      return existing;
+    }
+    return this.importFrameForOption(optionIndex, definition.name, bytes, definition.slots);
   }
 
   updateLayout(frameId: string, slots: FrameLayout, expectedRevision: number): StoredFrame {
@@ -125,24 +230,35 @@ export class FrameService {
 }
 
 /**
- * An installation that already imported an earlier shipped default keeps using it forever, which
- * would leave it on a frame the current pipeline no longer supports. A stored default whose
- * dimensions no longer match the packaged artwork is replaced on the next start; operator-imported
- * frames are never touched.
+ * Replace only untouched, automatically supplied defaults. Operator imports and any frame whose
+ * slot layout has been edited (revision > 0) are preserved across packaged artwork updates.
  */
-function isSupersededDefault(active: StoredFrame, defaultFrameBytes: Uint8Array): boolean {
-  if (active.name !== DEFAULT_FRAME_NAME) return false;
-  const size = readPngSize(defaultFrameBytes);
-  if (!size) return false;
-  return active.width !== size.width || active.height !== size.height;
-}
+function isReplaceablePackagedDefault(
+  optionIndex: 1 | 2,
+  frame: StoredFrame,
+  packagedBytes: Uint8Array,
+  existingOptions: [StoredFrame | null, StoredFrame | null],
+): boolean {
+  if (frame.revision > 0) return false;
+  const packagedSha256 = createHash('sha256').update(packagedBytes).digest('hex');
+  if (frame.sha256 === packagedSha256) return false;
 
-function readPngSize(bytes: Uint8Array): { width: number; height: number } | null {
-  const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-  if (bytes.byteLength < 24) return null;
-  if (PNG_MAGIC.some((value, index) => bytes[index] !== value)) return null;
-  const view = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  return { width: view.readUInt32BE(16), height: view.readUInt32BE(20) };
+  if (optionIndex === 1) {
+    return (
+      frame.name === 'CCF Alabang Ministry Fair Strip' &&
+      frame.sha256 === LEGACY_MINISTRY_FAIR_FRAME_SHA256
+    );
+  }
+
+  const option1 = existingOptions[0];
+  const isLegacyNamedDefault =
+    frame.name === 'CCF Alabang Ministry Fair Strip (Collage 2)' &&
+    frame.sha256 === LEGACY_MINISTRY_FAIR_FRAME_SHA256;
+  const isAutomaticDuplicate =
+    option1 !== null &&
+    frame.name === `${option1.name} (Collage 2)` &&
+    frame.sha256 === option1.sha256;
+  return isLegacyNamedDefault || isAutomaticDuplicate;
 }
 
 function sanitizeFrameName(name: string): string {

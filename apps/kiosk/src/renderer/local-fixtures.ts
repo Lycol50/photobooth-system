@@ -6,7 +6,9 @@ export const LOCAL_FIXTURES = {
   processingBackground: '/backgrounds/processing.jpg',
   processingAnimation: '/animations/loading.json',
   countdownAudio: '/audio/countdown.wav',
-  defaultFrame: '/frames/default-frame.png',
+  annivFrame: '/frames/anniv-frame.png',
+  defaultFrame: '/frames/mat-frame.png',
+  matFrame: '/frames/mat-frame.png',
   mockPhotos: ['/mock/photo-1.jpg', '/mock/photo-2.jpg', '/mock/photo-3.jpg'],
   recoveryBackground: '/backgrounds/recovery.jpg',
   shutterAudio: '/audio/shutter.wav',
@@ -16,28 +18,58 @@ export const DEFAULT_FRAME_LAYOUT = [
   {
     slotIndex: 1,
     name: 'Photo 1',
-    x: 0.171667,
-    y: 0.161667,
-    width: 0.581667,
-    height: 0.158056,
+    x: 0.25,
+    y: 0.295556,
+    width: 0.538333,
+    height: 0.142778,
     cropMode: 'crop-to-fill',
   },
   {
     slotIndex: 2,
     name: 'Photo 2',
-    x: 0.151667,
-    y: 0.4225,
-    width: 0.57,
-    height: 0.151667,
+    x: 0.138333,
+    y: 0.491667,
+    width: 0.553333,
+    height: 0.147778,
     cropMode: 'crop-to-fill',
   },
   {
     slotIndex: 3,
     name: 'Photo 3',
-    x: 0.258333,
-    y: 0.713611,
-    width: 0.5325,
-    height: 0.144167,
+    x: 0.271667,
+    y: 0.742778,
+    width: 0.465,
+    height: 0.126667,
+    cropMode: 'crop-to-fill',
+  },
+] satisfies FrameLayout;
+
+export const ANNIVERSARY_FRAME_LAYOUT = [
+  {
+    slotIndex: 1,
+    name: 'Photo 1',
+    x: 0.068333,
+    y: 0.28,
+    width: 0.86,
+    height: 0.166111,
+    cropMode: 'crop-to-fill',
+  },
+  {
+    slotIndex: 2,
+    name: 'Photo 2',
+    x: 0.065,
+    y: 0.487778,
+    width: 0.86,
+    height: 0.166667,
+    cropMode: 'crop-to-fill',
+  },
+  {
+    slotIndex: 3,
+    name: 'Photo 3',
+    x: 0.068333,
+    y: 0.696667,
+    width: 0.86,
+    height: 0.166667,
     cropMode: 'crop-to-fill',
   },
 ] satisfies FrameLayout;
@@ -45,8 +77,15 @@ export const DEFAULT_FRAME_LAYOUT = [
 export const DEFAULT_FRAME_PREVIEW = {
   width: 1_200,
   height: 3_600,
-  mediaUrl: LOCAL_FIXTURES.defaultFrame,
+  mediaUrl: LOCAL_FIXTURES.matFrame,
   slots: DEFAULT_FRAME_LAYOUT,
+} as const;
+
+export const ANNIVERSARY_FRAME_PREVIEW = {
+  width: 1_200,
+  height: 3_600,
+  mediaUrl: LOCAL_FIXTURES.annivFrame,
+  slots: ANNIVERSARY_FRAME_LAYOUT,
 } as const;
 
 export function mockPhotoFor(slotIndex: number): string {

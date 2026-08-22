@@ -115,6 +115,35 @@ for (const viewport of VIEWPORTS) {
       });
     });
   }
+
+  test(`review Collage 2 fits at ${viewport.label}`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto('/?visual=review');
+    await page.getByTestId('collage-option-2').click();
+    await expect(page.getByTestId('collage-option-2')).toHaveAttribute('aria-checked', 'true');
+    await waitForVisualAssets(page);
+    await expectNoPageOverflow(page);
+    await expect(page).toHaveScreenshot(`review-collage-2-${viewport.label}.png`, {
+      animations: 'disabled',
+      fullPage: false,
+    });
+  });
+
+  test(`Operator Frame Editor Collage 2 fits at ${viewport.label}`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto('/?visual=admin-frame');
+    await page.getByRole('tab', { name: 'Collage 2 · Anniversary' }).click();
+    await expect(page.getByRole('tab', { name: 'Collage 2 · Anniversary' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await waitForVisualAssets(page);
+    await expectNoPageOverflow(page);
+    await expect(page).toHaveScreenshot(`admin-frame-collage-2-${viewport.label}.png`, {
+      animations: 'disabled',
+      fullPage: false,
+    });
+  });
 }
 
 test('reduced motion removes cosmetic rotation and shutter flash', async ({ page }) => {
@@ -154,3 +183,107 @@ test('processing loads the packaged Lottie animation without external requests',
   expect(animationRequests).toHaveLength(1);
   expect(externalRequests).toEqual([]);
 });
+
+test('review fits and remains accessible at portrait viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.goto('/?visual=review');
+  await expect(page.getByTestId('review-screen')).toBeVisible();
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await Promise.all(
+      [...document.images].map((image) =>
+        image.complete
+          ? Promise.resolve()
+          : new Promise<void>((resolveImage) => {
+              image.addEventListener('load', () => resolveImage(), { once: true });
+              image.addEventListener('error', () => resolveImage(), { once: true });
+            }),
+      ),
+    );
+  });
+  await page.screenshot({ path: 'test-results/review-portrait-768x1024.png', fullPage: true });
+
+  const layout = await page.evaluate(() => ({
+    bodyWidth: document.body.scrollWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: window.innerWidth,
+  }));
+  expect(layout.bodyWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  const seriousOrCritical = accessibility.violations.filter(
+    (violation) => violation.impact === 'serious' || violation.impact === 'critical',
+  );
+  expect(seriousOrCritical).toEqual([]);
+});
+
+test('review fits and remains accessible at large desktop viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/?visual=review');
+  await expect(page.getByTestId('review-screen')).toBeVisible();
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await Promise.all(
+      [...document.images].map((image) =>
+        image.complete
+          ? Promise.resolve()
+          : new Promise<void>((resolveImage) => {
+              image.addEventListener('load', () => resolveImage(), { once: true });
+              image.addEventListener('error', () => resolveImage(), { once: true });
+            }),
+      ),
+    );
+  });
+  await page.screenshot({ path: 'test-results/review-desktop-1920x1080.png', fullPage: true });
+
+  const layout = await page.evaluate(() => ({
+    bodyWidth: document.body.scrollWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    bodyHeight: document.body.scrollHeight,
+    documentHeight: document.documentElement.scrollHeight,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+  }));
+  expect(layout.bodyWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.bodyHeight).toBeLessThanOrEqual(layout.viewportHeight);
+  expect(layout.documentHeight).toBeLessThanOrEqual(layout.viewportHeight);
+
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  const seriousOrCritical = accessibility.violations.filter(
+    (violation) => violation.impact === 'serious' || violation.impact === 'critical',
+  );
+  expect(seriousOrCritical).toEqual([]);
+});
+
+async function waitForVisualAssets(page: import('@playwright/test').Page): Promise<void> {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await Promise.all(
+      [...document.images].map((image) =>
+        image.complete
+          ? Promise.resolve()
+          : new Promise<void>((resolveImage) => {
+              image.addEventListener('load', () => resolveImage(), { once: true });
+              image.addEventListener('error', () => resolveImage(), { once: true });
+            }),
+      ),
+    );
+  });
+}
+
+async function expectNoPageOverflow(page: import('@playwright/test').Page): Promise<void> {
+  const layout = await page.evaluate(() => ({
+    bodyHeight: document.body.scrollHeight,
+    bodyWidth: document.body.scrollWidth,
+    documentHeight: document.documentElement.scrollHeight,
+    documentWidth: document.documentElement.scrollWidth,
+    viewportHeight: window.innerHeight,
+    viewportWidth: window.innerWidth,
+  }));
+  expect(layout.bodyWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.bodyHeight).toBeLessThanOrEqual(layout.viewportHeight);
+  expect(layout.documentHeight).toBeLessThanOrEqual(layout.viewportHeight);
+}

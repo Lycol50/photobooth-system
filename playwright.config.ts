@@ -14,7 +14,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: true,
   retries: 0,
-  updateSnapshots: 'none',
+  updateSnapshots: process.env.UPDATE_SNAPSHOTS ? 'all' : 'none',
   reporter: [['list'], ['html', { open: 'never' }]],
   projects: [
     {

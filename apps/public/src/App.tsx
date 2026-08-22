@@ -2,6 +2,7 @@ import {
   ApertureIcon as Aperture,
   ArrowClockwiseIcon as ArrowClockwise,
   DownloadSimpleIcon as DownloadSimple,
+  HandHeartIcon as HandHeart,
   ShieldCheckIcon as ShieldCheck,
   WarningOctagonIcon as WarningOctagon,
 } from '@phosphor-icons/react';
@@ -54,9 +55,6 @@ function PageFrame({ children }: { children: React.ReactNode }): React.JSX.Eleme
 function LoadingView(): React.JSX.Element {
   return (
     <main className="photo-layout" aria-live="polite" aria-busy="true" data-state="loading">
-      <section className="photo-stage skeleton-stage" aria-label="Loading your photo">
-        <div className="skeleton-photo" />
-      </section>
       <section className="detail-panel loading-panel">
         <p className="eyebrow">RETRIEVING ENCRYPTED ARCHIVE</p>
         <h1>Your moment is almost here.</h1>
@@ -64,6 +62,9 @@ function LoadingView(): React.JSX.Element {
         <div className="skeleton-line wide" />
         <div className="skeleton-line" />
         <span className="sr-only">Loading photo</span>
+      </section>
+      <section className="photo-stage skeleton-stage" aria-label="Loading your photo">
+        <div className="skeleton-photo" />
       </section>
     </main>
   );
@@ -139,21 +140,6 @@ function ReadyView({
 
   return (
     <main className="photo-layout" data-state="ready">
-      <section className="photo-stage" aria-label="Your finished photo">
-        <div className="stage-label" aria-hidden="true">
-          <span>M.A.T. PHOTOBOOTH // COMPOSITE</span>
-          <span className="crosshair-icon">+</span>
-        </div>
-        <div className="photo-mat">
-          <span className="mat-crosshair mat-crosshair--tl" aria-hidden="true">+</span>
-          <span className="mat-crosshair mat-crosshair--tr" aria-hidden="true">+</span>
-          <span className="mat-crosshair mat-crosshair--bl" aria-hidden="true">+</span>
-          <span className="mat-crosshair mat-crosshair--br" aria-hidden="true">+</span>
-          <img src={imageUrl} alt="M.A.T. Photobooth finished event collage" />
-        </div>
-        <p className="stage-caption">HIGH-RESOLUTION KEEPSAKE · VERIFIED REPOSITORY OUTPUT</p>
-      </section>
-
       <section className="detail-panel" aria-labelledby="photo-title">
         <div>
           <p className="eyebrow success-eyebrow">
@@ -162,7 +148,8 @@ function ReadyView({
           </p>
           <h1 id="photo-title">Hold on to this moment.</h1>
           <p className="lead-copy">
-            Your finished 3-frame photobooth strip is prepared for download. Save it directly to your device storage before expiration.
+            Your finished 3-frame photobooth strip is prepared for download. Save it directly to
+            your device storage before expiration.
           </p>
         </div>
 
@@ -176,25 +163,19 @@ function ReadyView({
             <DownloadSimple size={20} weight="bold" aria-hidden="true" />
             <span>{downloadState === 'working' ? 'Preparing download…' : 'Download photo'}</span>
           </button>
+          <a
+            className="secondary-button"
+            href="https://volunteer-management.ccf.org.ph/recruitment/form"
+            target="_blank"
+            rel="noopener noreferrer external"
+          >
+            <HandHeart size={18} weight="bold" aria-hidden="true" />
+            <span>Join a Ministry</span>
+          </a>
           <p className="mobile-save-hint">
-            <span>💡</span> Tip: On iPhone/iPad, you can also touch &amp; hold the photo to Save to Photos.
+            <span>💡</span> Tip: On iPhone/iPad, you can also touch &amp; hold the photo to Save to
+            Photos.
           </p>
-          {details.googleFormsUrl ? (
-            <>
-              <a
-                className="secondary-button"
-                href={details.googleFormsUrl}
-                target="_blank"
-                rel="noopener noreferrer external"
-              >
-                Ministry registration
-              </a>
-              <p className="form-note">
-                Registration is optional and opens an external Google Form. It never gates your
-                photo download.
-              </p>
-            </>
-          ) : null}
           {downloadState === 'error' ? (
             <p className="inline-error" role="alert">
               The download did not start. Please try again.
@@ -212,6 +193,29 @@ function ReadyView({
             This private link and cloud copy expire automatically.
           </p>
         </div>
+      </section>
+
+      <section className="photo-stage" aria-label="Your finished photo">
+        <div className="stage-label" aria-hidden="true">
+          <span>M.A.T. PHOTOBOOTH // COMPOSITE</span>
+          <span className="crosshair-icon">+</span>
+        </div>
+        <div className="photo-mat">
+          <span className="mat-crosshair mat-crosshair--tl" aria-hidden="true">
+            +
+          </span>
+          <span className="mat-crosshair mat-crosshair--tr" aria-hidden="true">
+            +
+          </span>
+          <span className="mat-crosshair mat-crosshair--bl" aria-hidden="true">
+            +
+          </span>
+          <span className="mat-crosshair mat-crosshair--br" aria-hidden="true">
+            +
+          </span>
+          <img src={imageUrl} alt="M.A.T. Photobooth finished event collage" />
+        </div>
+        <p className="stage-caption">HIGH-RESOLUTION KEEPSAKE · VERIFIED REPOSITORY OUTPUT</p>
       </section>
     </main>
   );

@@ -5,6 +5,7 @@ import type {
   BoothSnapshot,
   CameraAdapter,
   CaptureResult,
+  FrameSummary,
   GuestErrorCode,
   SessionState,
 } from '@grace-booth/shared';
@@ -51,12 +52,14 @@ export class BoothWorkflow {
     uploadQueue.on('uploading', (sessionId: string) => this.emitIfActive(sessionId));
     uploadQueue.on('ready', (sessionId: string) => void this.handleUploadReady(sessionId));
     uploadQueue.on('failed', (sessionId: string) => this.handleUploadFailed(sessionId));
-    uploadQueue.on('auth-required', (sessionId: string) => this.handleUploadAuthRequired(sessionId));
+    uploadQueue.on('auth-required', (sessionId: string) =>
+      this.handleUploadAuthRequired(sessionId),
+    );
     uploadQueue.on('retry', (sessionId: string) => this.emitIfActive(sessionId));
   }
 
   async initialize(): Promise<void> {
-    await this.frameService.ensureDefaultFrame();
+    await this.frameService.ensureDefaultFrames();
     const recovered = this.repository.getLatestIncompleteSession();
     this.activeSessionId = recovered?.id ?? null;
     try {
@@ -113,6 +116,17 @@ export class BoothWorkflow {
       : null;
     const qrImageUrl = this.qrBySession.get(session.id) ?? null;
     const activeFrame = this.repository.getActiveFrame();
+    const [frame1, frame2] = this.frameService.getFrameOptions();
+    const frameOptions =
+      frame1 && frame2
+        ? ([this.frameService.toSummary(frame1), this.frameService.toSummary(frame2)] as [
+            FrameSummary,
+            FrameSummary,
+          ])
+        : undefined;
+    const selectedFrame = session.selectedFrameId
+      ? (this.repository.getFrame(session.selectedFrameId) ?? activeFrame)
+      : activeFrame;
     return {
       screen: screenFor(session.state, qrImageUrl !== null),
       state: session.state,
@@ -127,7 +141,8 @@ export class BoothWorkflow {
       media: {
         captureUrls: captures.map((asset) => mediaUrl(asset.id)),
         collageUrl: collage ? mediaUrl(collage.id) : null,
-        frame: activeFrame ? this.frameService.toSummary(activeFrame) : null,
+        frame: selectedFrame ? this.frameService.toSummary(selectedFrame) : null,
+        frames: frameOptions,
         qrImageUrl,
       },
       controls: {
@@ -175,12 +190,25 @@ export class BoothWorkflow {
     return this.getSnapshot();
   }
 
-  acceptPhotos(): BoothSnapshot {
+  acceptPhotos(selectedOption: 1 | 2 = 1): BoothSnapshot {
     const session = this.requireActive();
     if (session.state !== 'review' || session.captureCount !== PHOTO_COUNT) {
       throw new AppError('review_incomplete', 'Three photos are required before processing.');
     }
-    this.transition(session, 'accept_photos', {}, this.now());
+    const [frame1, frame2] = this.frameService.getFrameOptions();
+    const chosenFrame = selectedOption === 2 ? (frame2 ?? frame1) : frame1;
+    if (!chosenFrame) {
+      throw new AppError('frame_missing', 'The selected photo frame is missing.');
+    }
+    this.transition(
+      session,
+      'accept_photos',
+      {
+        selectedOption,
+        selectedFrameId: chosenFrame.id,
+      },
+      this.now(),
+    );
     this.emit();
     void this.processCollage(session.id);
     return this.getSnapshot();
@@ -325,7 +353,10 @@ export class BoothWorkflow {
         Buffer,
         Buffer,
       ];
-      const frame = this.repository.getActiveFrame();
+      const session = this.repository.requireSession(sessionId);
+      const frame =
+        (session.selectedFrameId ? this.repository.getFrame(session.selectedFrameId) : null) ??
+        this.repository.getActiveFrame();
       if (!frame) throw new AppError('frame_missing', 'The active photo frame is missing.');
       const framePng = this.vault.read(frame.encryptedPath);
       const result = await this.imageProcessor.process({

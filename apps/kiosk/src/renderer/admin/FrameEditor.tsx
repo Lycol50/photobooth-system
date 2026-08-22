@@ -4,9 +4,6 @@ import {
   FilePngIcon as FilePng,
   FloppyDiskIcon as FloppyDisk,
   FilmStripIcon as FilmStrip,
-  RowsIcon as Rows,
-  SidebarSimpleIcon as SidebarSimple,
-  SquaresFourIcon as SquaresFour,
 } from '@phosphor-icons/react';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -23,17 +20,23 @@ import { Button } from '../components/Button';
 import { LOCAL_FIXTURES, mockPhotoFor } from '../local-fixtures';
 
 type FrameEditorProps = {
-  busy?: boolean;
-  error?: string | null;
-  frame: FrameSummary;
-  onChooseFrame: () => void;
-  onSave: (slots: FrameLayout) => void;
-  status?: string | null;
+  busy?: boolean | undefined;
+  error?: string | null | undefined;
+  frame?: FrameSummary | undefined;
+  frames?: [FrameSummary, FrameSummary] | undefined;
+  onChooseFrame: (optionIndex: 1 | 2) => void;
+  onSave: (frameId: string, slots: FrameLayout, expectedRevision: number) => void;
+  status?: string | null | undefined;
 };
 
 type StageSize = {
   height: number;
   width: number;
+};
+
+type SlotDraft = {
+  frameKey: string;
+  slots: FrameLayout;
 };
 
 function constrainSlot(slot: FrameSlot): FrameSlot {
@@ -57,14 +60,28 @@ export function FrameEditor({
   busy = false,
   error,
   frame,
+  frames,
   onChooseFrame,
   onSave,
   status,
 }: FrameEditorProps) {
+  const [activeCollageIndex, setActiveCollageIndex] = useState<1 | 2>(1);
+
+  const frame1 = frames?.[0] ?? frame;
+  const frame2 = frames?.[1] ?? frame;
+  const activeFrame = activeCollageIndex === 1 ? frame1 : (frame2 ?? frame1);
+
   const stageRef = useRef<HTMLDivElement>(null);
   const [stageSize, setStageSize] = useState<StageSize>({ width: 540, height: 720 });
-  const [slots, setSlots] = useState<FrameLayout>(() => frame.slots.map((slot) => ({ ...slot })));
+  const [draft1, setDraft1] = useState<SlotDraft | null>(null);
+  const [draft2, setDraft2] = useState<SlotDraft | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(1);
+
+  const frameKey1 = frame1 ? `${frame1.id}:${frame1.revision}` : '';
+  const frameKey2 = frame2 ? `${frame2.id}:${frame2.revision}` : '';
+  const slots1 = draft1?.frameKey === frameKey1 ? draft1.slots : (frame1?.slots ?? []);
+  const slots2 = draft2?.frameKey === frameKey2 ? draft2.slots : (frame2?.slots ?? []);
+  const currentSlots = activeCollageIndex === 1 ? slots1 : slots2;
 
   useLayoutEffect(() => {
     const element = stageRef.current;
@@ -87,19 +104,22 @@ export function FrameEditor({
     const observer = new ResizeObserver(update);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [frame.height, frame.width]);
+  }, [activeFrame?.height, activeFrame?.width, activeCollageIndex]);
 
   const selectedSlot = useMemo(
-    () => slots.find((slot) => slot.slotIndex === selectedIndex) ?? slots[0],
-    [selectedIndex, slots],
+    () => currentSlots.find((slot) => slot.slotIndex === selectedIndex) ?? currentSlots[0],
+    [selectedIndex, currentSlots],
   );
 
   const updateSlot = (slotIndex: number, update: Partial<FrameSlot>) => {
-    setSlots((current) =>
-      current.map((slot) =>
-        slot.slotIndex === slotIndex ? constrainSlot({ ...slot, ...update }) : slot,
-      ),
+    const nextSlots = currentSlots.map((slot) =>
+      slot.slotIndex === slotIndex ? constrainSlot({ ...slot, ...update }) : slot,
     );
+    if (activeCollageIndex === 1) {
+      setDraft1({ frameKey: frameKey1, slots: nextSlots });
+    } else {
+      setDraft2({ frameKey: frameKey2, slots: nextSlots });
+    }
   };
 
   const updateSelectedPercent = (field: 'x' | 'y' | 'width' | 'height', value: string) => {
@@ -118,36 +138,10 @@ export function FrameEditor({
   };
 
   const resetSelected = () => {
-    const persisted = frame.slots.find((slot) => slot.slotIndex === selectedIndex);
+    const persisted = activeFrame?.slots.find((slot) => slot.slotIndex === selectedIndex);
     if (persisted) {
       updateSlot(selectedIndex, persisted);
     }
-  };
-
-  const applyPreset = (preset: 'strip-3' | 'strip-3-balanced' | 'hero-2') => {
-    setSlots((current) => {
-      return current.map((slot) => {
-        const slotIdx = slot.slotIndex;
-        if (preset === 'strip-3') {
-          if (slotIdx === 1) return constrainSlot({ ...slot, x: 0.171667, y: 0.161667, width: 0.581667, height: 0.158056, cropMode: 'crop-to-fill' });
-          if (slotIdx === 2) return constrainSlot({ ...slot, x: 0.151667, y: 0.422500, width: 0.570000, height: 0.151667, cropMode: 'crop-to-fill' });
-          if (slotIdx === 3) return constrainSlot({ ...slot, x: 0.258333, y: 0.713611, width: 0.532500, height: 0.144167, cropMode: 'crop-to-fill' });
-        }
-        if (preset === 'strip-3-balanced') {
-          const yPositions = [0.08, 0.37, 0.66];
-          const y = yPositions[slotIdx - 1] ?? 0.08;
-          return constrainSlot({ ...slot, x: 0.10, y, width: 0.80, height: 0.26, cropMode: 'crop-to-fill' });
-        }
-        if (preset === 'hero-2') {
-          if (slotIdx === 1) {
-            return constrainSlot({ ...slot, x: 0.10, y: 0.08, width: 0.80, height: 0.44, cropMode: 'crop-to-fill' });
-          }
-          const x = slotIdx === 2 ? 0.10 : 0.52;
-          return constrainSlot({ ...slot, x, y: 0.55, width: 0.38, height: 0.35, cropMode: 'crop-to-fill' });
-        }
-        return slot;
-      });
-    });
   };
 
   const nudgeSelected = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -169,6 +163,11 @@ export function FrameEditor({
     });
   };
 
+  const handleSave = () => {
+    if (!activeFrame) return;
+    onSave(activeFrame.id, currentSlots, activeFrame.revision);
+  };
+
   return (
     <div className="frame-editor" data-testid="frame-editor">
       <header className="admin-page-header">
@@ -176,14 +175,34 @@ export function FrameEditor({
           <h1 data-screen-heading tabIndex={-1}>
             FRAME EDITOR
           </h1>
-          <p>
-            Configure how three guest photos map onto the frame canvas. All positions stay proportional to the frame.
-          </p>
+          <p>Configure two independent collage designs and their three-photo slot geometry.</p>
         </div>
         <div className="admin-page-header__actions">
+          <div className="collage-tab-group" role="tablist" aria-label="Collage options to edit">
+            <button
+              className={`collage-tab-btn ${activeCollageIndex === 1 ? 'is-active' : ''}`}
+              onClick={() => setActiveCollageIndex(1)}
+              role="tab"
+              aria-selected={activeCollageIndex === 1}
+              type="button"
+              data-testid="tab-collage-1"
+            >
+              Collage 1 · M.A.T.
+            </button>
+            <button
+              className={`collage-tab-btn ${activeCollageIndex === 2 ? 'is-active' : ''}`}
+              onClick={() => setActiveCollageIndex(2)}
+              role="tab"
+              aria-selected={activeCollageIndex === 2}
+              type="button"
+              data-testid="tab-collage-2"
+            >
+              Collage 2 · Anniversary
+            </button>
+          </div>
           <Button
             icon={<FilePng aria-hidden="true" weight="bold" />}
-            onClick={onChooseFrame}
+            onClick={() => onChooseFrame(activeCollageIndex)}
             variant="secondary"
           >
             Replace frame
@@ -191,7 +210,7 @@ export function FrameEditor({
           <Button
             icon={<FloppyDisk aria-hidden="true" weight="bold" />}
             loading={busy}
-            onClick={() => onSave(slots)}
+            onClick={handleSave}
           >
             Save configuration
           </Button>
@@ -204,10 +223,10 @@ export function FrameEditor({
               className="frame-stage"
               ref={stageRef}
               style={{
-                aspectRatio: `${frame.width} / ${frame.height}`,
+                aspectRatio: `${activeFrame?.width ?? 1200} / ${activeFrame?.height ?? 3600}`,
               }}
             >
-              {slots.map((slot) => {
+              {currentSlots.map((slot) => {
                 const selected = slot.slotIndex === selectedIndex;
                 return (
                   <Rnd
@@ -260,7 +279,7 @@ export function FrameEditor({
               })}
               <img
                 className="frame-stage__overlay"
-                src={frame.mediaUrl || LOCAL_FIXTURES.defaultFrame}
+                src={activeFrame?.mediaUrl ?? LOCAL_FIXTURES.defaultFrame}
                 alt="Current transparent frame overlay"
                 draggable="false"
               />
@@ -268,44 +287,12 @@ export function FrameEditor({
           </div>
         </section>
         <aside className="slot-inspector" aria-label="Selected photo slot settings">
-          <fieldset className="slot-inspector__group preset-group">
-            <legend>LAYOUT PRESETS</legend>
-            <div className="preset-buttons">
-              <button
-                className="preset-btn"
-                onClick={() => applyPreset('strip-3')}
-                title="CCF Alabang 3-Strip Artwork"
-                type="button"
-              >
-                <Rows aria-hidden="true" size={16} weight="bold" />
-                <span>3-Strip</span>
-              </button>
-              <button
-                className="preset-btn"
-                onClick={() => applyPreset('strip-3-balanced')}
-                title="Balanced Vertical 3-Stack"
-                type="button"
-              >
-                <SquaresFour aria-hidden="true" size={16} weight="bold" />
-                <span>3-Stack</span>
-              </button>
-              <button
-                className="preset-btn"
-                onClick={() => applyPreset('hero-2')}
-                title="Hero Top with 2 Thumbnails"
-                type="button"
-              >
-                <SidebarSimple aria-hidden="true" size={16} weight="bold" />
-                <span>Hero+2</span>
-              </button>
-            </div>
-          </fieldset>
           <div className="slot-inspector__heading">
             <span>SELECTED SLOT</span>
             <h2>{selectedSlot?.name ?? 'Photo slot'}</h2>
           </div>
           <div className="slot-tabs" role="tablist" aria-label="Photo slots">
-            {slots.map((slot) => (
+            {currentSlots.map((slot) => (
               <button
                 aria-selected={selectedIndex === slot.slotIndex}
                 className={selectedIndex === slot.slotIndex ? 'is-active' : ''}
@@ -346,7 +333,9 @@ export function FrameEditor({
                     </label>
                   ))}
                 </div>
-                <p>Drag the slot on the canvas or enter coordinates. Arrow keys nudge selected slot.</p>
+                <p>
+                  Drag the slot on the canvas or enter coordinates. Arrow keys nudge selected slot.
+                </p>
               </fieldset>
               <fieldset className="slot-inspector__group">
                 <legend>

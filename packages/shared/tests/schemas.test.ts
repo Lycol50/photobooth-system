@@ -59,4 +59,20 @@ describe('shared boundary schemas', () => {
       ConfirmUploadResponseSchema.parse({ ...valid, publicPageOrigin: 'http://example.test' }),
     ).toThrow();
   });
+
+  it('validates collage option parameters for accept-photos and choose-frame', () => {
+    expect(IpcContracts['booth:accept-photos'].request.parse({})).toEqual({ selectedOption: 1 });
+    expect(IpcContracts['booth:accept-photos'].request.parse({ selectedOption: 2 })).toEqual({
+      selectedOption: 2,
+    });
+    expect(() =>
+      IpcContracts['booth:accept-photos'].request.parse({ selectedOption: 3 }),
+    ).toThrow();
+
+    expect(IpcContracts['admin:choose-frame'].request.parse({})).toEqual({ optionIndex: 1 });
+    expect(IpcContracts['admin:choose-frame'].request.parse({ optionIndex: 2 })).toEqual({
+      optionIndex: 2,
+    });
+    expect(() => IpcContracts['admin:choose-frame'].request.parse({ optionIndex: 0 })).toThrow();
+  });
 });

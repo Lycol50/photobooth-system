@@ -32,11 +32,12 @@ function parseHttpsUrl(value: string, name: string, allowLocalHttp = true): URL 
 function validateEnvironment(mode: string): ValidatedBuildEnvironment {
   const env = loadEnv(mode, fileURLToPath(new URL('../..', import.meta.url)), 'VITE_');
   const testing = mode === 'test';
-  const apiValue =
-    env.VITE_PUBLIC_PHOTO_API_URL ??
-    (testing ? 'https://api.example.test/functions/v1/photo' : INERT_API_URL);
-  const pageValue =
-    env.VITE_PUBLIC_PAGE_ORIGIN ?? (testing ? 'https://photos.example.test' : INERT_PAGE_ORIGIN);
+  const apiValue = testing
+    ? 'https://api.example.test/functions/v1/photo'
+    : (env.VITE_PUBLIC_PHOTO_API_URL ?? INERT_API_URL);
+  const pageValue = testing
+    ? 'https://photos.example.test'
+    : (env.VITE_PUBLIC_PAGE_ORIGIN ?? INERT_PAGE_ORIGIN);
 
   const apiUrl = parseHttpsUrl(apiValue, 'VITE_PUBLIC_PHOTO_API_URL');
   if (

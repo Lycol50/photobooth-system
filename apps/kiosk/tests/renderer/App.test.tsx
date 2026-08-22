@@ -15,6 +15,7 @@ import type {
 } from '@grace-booth/shared';
 
 import { App } from '../../src/renderer/App';
+import { DEFAULT_FRAME_LAYOUT, LOCAL_FIXTURES } from '../../src/renderer/local-fixtures';
 
 const SESSION_ID = '11111111-1111-4111-8111-111111111111';
 const FRAME_ID = '22222222-2222-4222-8222-222222222222';
@@ -25,41 +26,13 @@ function ok<T>(data: T): RpcResult<T> {
 
 const FRAME = {
   id: FRAME_ID,
-  name: 'CCF Alabang Ministry Fair Strip',
+  name: 'M.A.T. 42nd Anniversary',
   width: 1200,
   height: 3600,
   byteSize: 44_090,
-  mediaUrl: '/frames/default-frame.png',
+  mediaUrl: LOCAL_FIXTURES.matFrame,
   revision: 1,
-  slots: [
-    {
-      slotIndex: 1,
-      name: 'Photo 1',
-      x: 0.171667,
-      y: 0.161667,
-      width: 0.581667,
-      height: 0.158056,
-      cropMode: 'crop-to-fill',
-    },
-    {
-      slotIndex: 2,
-      name: 'Photo 2',
-      x: 0.151667,
-      y: 0.4225,
-      width: 0.57,
-      height: 0.151667,
-      cropMode: 'crop-to-fill',
-    },
-    {
-      slotIndex: 3,
-      name: 'Photo 3',
-      x: 0.258333,
-      y: 0.713611,
-      width: 0.5325,
-      height: 0.144167,
-      cropMode: 'crop-to-fill',
-    },
-  ],
+  slots: DEFAULT_FRAME_LAYOUT,
 } satisfies AdminSettings['activeFrame'];
 
 const SETTINGS: AdminSettings = {
@@ -312,12 +285,8 @@ describe('App guest flow', () => {
     );
 
     expect(await screen.findByTestId('review-screen')).toBeVisible();
-    expect(screen.getByRole('group', { name: /selected Ministry Fair frame/i })).toBeVisible();
-    expect(
-      screen.getByRole('group', { name: /selected Ministry Fair frame/i }).lastElementChild,
-    ).toHaveAttribute('src', FRAME.mediaUrl);
-    const buttons = screen.getAllByRole('button');
-    expect(buttons).toHaveLength(2);
+    expect(screen.getByTestId('collage-option-1')).toBeVisible();
+    expect(screen.getByTestId('collage-option-2')).toBeVisible();
     expect(screen.getByRole('button', { name: /retake all photos/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /use these photos/i })).toBeVisible();
   });

@@ -34,15 +34,54 @@ test('guest happy path, repeated retakes, final restoration, and Done reset', as
     await expect(
       kiosk.page.getByRole('img', { name: 'QR code for your private photo download' }),
     ).toBeVisible();
+    await kiosk.page.screenshot({
+      path: 'test-results/electron-final-collage-1.png',
+      fullPage: false,
+    });
 
     await exitImmediately(kiosk.app);
     kiosk = await launchKiosk(userData, { GRACE_BOOTH_E2E_NOW_MS: Date.now() + 11 * 60_000 });
     await expect(kiosk.page.getByTestId('final-screen')).toBeVisible({ timeout: 30_000 });
 
     await kiosk.page.getByRole('button', { name: 'Done' }).click();
-    const start = kiosk.page.getByRole('button', { name: 'Start Session' });
+    const start = kiosk.page.getByRole('button', { name: 'Start photo session' });
     await expect(start).toBeVisible();
     await expect(start).toBeFocused();
+  } finally {
+    await closeKiosk(kiosk?.app);
+    await removeUserDataDirectory(userData);
+  }
+});
+
+test('the Anniversary selection produces and displays the second collage', async () => {
+  const userData = await createUserDataDirectory();
+  let kiosk: RunningKiosk | null = null;
+  try {
+    kiosk = await launchKiosk(userData);
+    await bootstrap(kiosk.page);
+    await startAndWaitForReview(kiosk.page);
+    await kiosk.page.getByTestId('collage-option-2').click();
+    await expect(kiosk.page.getByTestId('collage-option-2')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await kiosk.page.getByRole('button', { name: 'Use these photos' }).click();
+    await expect(kiosk.page.getByTestId('final-screen')).toBeVisible({ timeout: 45_000 });
+
+    const collage = kiosk.page.getByRole('img', { name: 'Your finished three-photo strip' });
+    await expect(collage).toBeVisible();
+    await expect
+      .poll(() =>
+        collage.evaluate((image: HTMLImageElement) => ({
+          height: image.naturalHeight,
+          width: image.naturalWidth,
+        })),
+      )
+      .toEqual({ height: 2_700, width: 900 });
+    await kiosk.page.screenshot({
+      path: 'test-results/electron-final-collage-2.png',
+      fullPage: false,
+    });
   } finally {
     await closeKiosk(kiosk?.app);
     await removeUserDataDirectory(userData);
@@ -59,7 +98,7 @@ test('three production-length countdowns require at least 15 seconds', async () 
     });
     await bootstrap(kiosk.page);
     const startedAt = Date.now();
-    await kiosk.page.getByRole('button', { name: 'Start Session' }).click();
+    await kiosk.page.getByRole('button', { name: 'Start photo session' }).click();
     await expect(kiosk.page.getByTestId('review-screen')).toBeVisible({ timeout: 45_000 });
     expect(Date.now() - startedAt).toBeGreaterThanOrEqual(14_500);
   } finally {
@@ -77,7 +116,7 @@ test('camera failure requires the operator passcode before restart', async () =>
       GRACE_BOOTH_E2E_COUNTDOWN_MS: 500,
     });
     await bootstrap(kiosk.page);
-    await kiosk.page.getByRole('button', { name: 'Start Session' }).click();
+    await kiosk.page.getByRole('button', { name: 'Start photo session' }).click();
     await expect(kiosk.page.getByTestId('recovery-camera')).toBeVisible({ timeout: 30_000 });
 
     await kiosk.page.getByRole('button', { name: 'Restart session' }).click();
@@ -102,7 +141,7 @@ test('automatic 1/3/8 second retry cycle exhausts and manual retry succeeds', as
     await kiosk.page.getByRole('button', { name: 'Use these photos' }).click();
     await expect(kiosk.page.getByTestId('recovery-upload')).toBeVisible({ timeout: 40_000 });
     expect(Date.now() - acceptedAt).toBeGreaterThanOrEqual(11_500);
-    await expect(kiosk.page.getByText('Your photo is saved on this booth.')).toBeVisible();
+    await expect(kiosk.page.getByRole('heading', { name: 'Upload did not finish' })).toBeVisible();
 
     await kiosk.page.getByRole('button', { name: 'Retry upload' }).click();
     await expect(kiosk.page.getByTestId('final-screen')).toBeVisible({ timeout: 30_000 });
@@ -185,10 +224,11 @@ async function bootstrap(page: Page): Promise<void> {
 }
 
 async function startAndWaitForReview(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Start Session' }).click();
+  await page.getByRole('button', { name: 'Start photo session' }).click();
   await expect(page.getByTestId('capture-screen')).toBeVisible();
   await expect(page.getByTestId('review-screen')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('.photo-slot img')).toHaveCount(3);
+  await expect(page.locator('[data-testid="collage-option-1"] .photo-slot img')).toHaveCount(3);
+  await expect(page.locator('[data-testid="collage-option-2"] .photo-slot img')).toHaveCount(3);
 }
 
 async function exitImmediately(app: ElectronApplication): Promise<void> {

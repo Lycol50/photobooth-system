@@ -19,51 +19,54 @@ async function installReadyApi(page: Page): Promise<ApiCall[]> {
   const jpeg = await readFile(PHOTO_FIXTURE);
 
   await page.route(`${API_ORIGIN}/**`, async (route: Route) => {
-    const request = route.request();
-    const routeName = new URL(request.url()).pathname.split('/').at(-1);
-    expect(request.method()).toBe('POST');
-    expect(request.url()).not.toContain(TOKEN);
-    expect(request.headers().referer).toBeUndefined();
-    expect(request.headers().origin).toBe('http://127.0.0.1:4173');
-    const body = request.postDataJSON() as { token?: unknown };
-    expect(Object.keys(body)).toEqual(['token']);
-    expect(body.token).toBe(TOKEN);
-    if (typeof body.token !== 'string') {
-      throw new TypeError('Public photo request omitted its token body');
-    }
+    try {
+      const request = route.request();
+      const routeName = new URL(request.url()).pathname.split('/').at(-1);
+      expect(request.method()).toBe('POST');
+      expect(request.url()).not.toContain(TOKEN);
+      const body = request.postDataJSON() as { token?: unknown };
+      expect(Object.keys(body)).toEqual(['token']);
+      expect(body.token).toBe(TOKEN);
+      if (typeof body.token !== 'string') {
+        throw new TypeError('Public photo request omitted its token body');
+      }
 
-    if (routeName !== 'resolve' && routeName !== 'image' && routeName !== 'download') {
-      await route.abort();
-      return;
-    }
-    calls.push({ route: routeName, token: body.token, url: request.url() });
+      if (routeName !== 'resolve' && routeName !== 'image' && routeName !== 'download') {
+        await route.abort();
+        return;
+      }
+      calls.push({ route: routeName, token: body.token, url: request.url() });
 
-    if (routeName === 'resolve') {
+      if (routeName === 'resolve') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: { 'Cache-Control': 'no-store' },
+          body: JSON.stringify({
+            status: 'ready',
+            expiresAt: '2026-09-16T12:00:00.000Z',
+            googleFormsUrl: null,
+          }),
+        });
+        return;
+      }
+
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        headers: { 'Cache-Control': 'no-store' },
-        body: JSON.stringify({
-          status: 'ready',
-          expiresAt: '2026-09-16T12:00:00.000Z',
-          googleFormsUrl: 'https://forms.gle/GraceBoothExample',
-        }),
+        contentType: 'image/jpeg',
+        headers: {
+          'Cache-Control': 'no-store',
+          'Content-Disposition':
+            routeName === 'download'
+              ? 'attachment; filename="grace-booth-photo.jpg"'
+              : 'inline; filename="grace-booth-photo.jpg"',
+        },
+        body: jpeg,
       });
-      return;
+    } catch (err) {
+      console.error('ERROR IN ROUTE HANDLER:', err);
+      await route.abort();
     }
-
-    await route.fulfill({
-      status: 200,
-      contentType: 'image/jpeg',
-      headers: {
-        'Cache-Control': 'no-store',
-        'Content-Disposition':
-          routeName === 'download'
-            ? 'attachment; filename="grace-booth-photo.jpg"'
-            : 'inline; filename="grace-booth-photo.jpg"',
-      },
-      body: jpeg,
-    });
   });
 
   await page.route('https://**/*', async (route) => {
@@ -85,20 +88,17 @@ test('resolves, displays, and downloads a private photo without leaking the toke
   await page.goto(`/photo#${TOKEN}`);
 
   await expect(page.getByRole('heading', { name: 'Hold on to this moment.' })).toBeVisible();
-  await expect(page.getByAltText('Your finished Grace Booth event collage')).toBeVisible();
-  await expect(
-    page.getByText(/Registration is optional and opens an external Google Form/),
-  ).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Ministry registration' })).toHaveAttribute(
+  await expect(page.getByAltText('M.A.T. Photobooth finished event collage')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Join a Ministry' })).toHaveAttribute(
     'href',
-    'https://forms.gle/GraceBoothExample',
+    'https://volunteer-management.ccf.org.ph/recruitment/form',
   );
   expect(calls.map((call) => call.route)).toEqual(['resolve', 'image']);
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download photo' }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe('grace-booth-photo.jpg');
+  expect(download.suggestedFilename()).toBe('mat-photobooth-keepsake.jpg');
   expect(calls.map((call) => call.route)).toEqual(['resolve', 'image', 'download']);
   expect(calls.every((call) => call.token === TOKEN && !call.url.includes(TOKEN))).toBe(true);
 

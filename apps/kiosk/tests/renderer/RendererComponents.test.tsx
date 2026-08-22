@@ -14,45 +14,30 @@ import { CaptureScreen } from '../../src/renderer/screens/CaptureScreen';
 import { ProcessingScreen } from '../../src/renderer/screens/ProcessingScreen';
 import { RecoveryScreen } from '../../src/renderer/screens/RecoveryScreen';
 import { ReviewScreen } from '../../src/renderer/screens/ReviewScreen';
+import {
+  ANNIVERSARY_FRAME_LAYOUT,
+  DEFAULT_FRAME_LAYOUT,
+  LOCAL_FIXTURES,
+} from '../../src/renderer/local-fixtures';
 import { recoveryVariantFor, safeGuestMessage } from '../../src/renderer/types';
 
 const FRAME = {
   id: '22222222-2222-4222-8222-222222222222',
-  name: 'CCF Alabang Ministry Fair Strip',
+  name: 'M.A.T. 42nd Anniversary',
   width: 1200,
   height: 3600,
   byteSize: 44_090,
-  mediaUrl: '/frames/default-frame.png',
+  mediaUrl: LOCAL_FIXTURES.matFrame,
   revision: 1,
-  slots: [
-    {
-      slotIndex: 1,
-      name: 'Photo 1',
-      x: 0.171667,
-      y: 0.161667,
-      width: 0.581667,
-      height: 0.158056,
-      cropMode: 'crop-to-fill',
-    },
-    {
-      slotIndex: 2,
-      name: 'Photo 2',
-      x: 0.151667,
-      y: 0.4225,
-      width: 0.57,
-      height: 0.151667,
-      cropMode: 'crop-to-fill',
-    },
-    {
-      slotIndex: 3,
-      name: 'Photo 3',
-      x: 0.258333,
-      y: 0.713611,
-      width: 0.5325,
-      height: 0.144167,
-      cropMode: 'crop-to-fill',
-    },
-  ],
+  slots: DEFAULT_FRAME_LAYOUT,
+} satisfies AdminSettings['activeFrame'];
+
+const FRAME_2 = {
+  ...FRAME,
+  id: '00000000-0000-4000-8000-000000000002',
+  name: 'CCF Alabang 42nd Anniversary',
+  mediaUrl: LOCAL_FIXTURES.annivFrame,
+  slots: ANNIVERSARY_FRAME_LAYOUT,
 } satisfies AdminSettings['activeFrame'];
 
 const SETTINGS: AdminSettings = {
@@ -67,6 +52,7 @@ const SETTINGS: AdminSettings = {
     certificateFingerprint: null,
   },
   activeFrame: FRAME,
+  frames: [FRAME, FRAME_2],
   cameraAdapter: 'webcam',
   cameraDeviceId: null,
   supabaseUrl: null,
@@ -91,29 +77,30 @@ describe('guest screen components', () => {
     expect(screen.getByText(/Ministry Fair · Grand celebratory finale!/i)).toBeVisible();
   });
 
-  it('renders only whole-set review actions', () => {
+  it('renders only whole-set review actions across two collage options', async () => {
+    const user = userEvent.setup();
     const captureUrls = ['/capture/one.jpg', '/capture/two.jpg', '/capture/three.jpg'];
+    const onAccept = vi.fn();
     render(
       <ReviewScreen
         canAccept
         canRetake
         captureUrls={captureUrls}
-        frame={FRAME}
-        onAccept={() => undefined}
+        frames={[FRAME, FRAME_2]}
+        onAccept={onAccept}
         onRetake={() => undefined}
       />,
     );
-    expect(screen.getAllByRole('figure')).toHaveLength(3);
-    expect(screen.getByRole('group', { name: /selected Ministry Fair frame/i })).toHaveStyle({
-      aspectRatio: '1200 / 3600',
-    });
-    expect(screen.getByAltText('Captured photo 1')).toHaveAttribute('src', captureUrls[0]);
-    expect(screen.getByAltText('Captured photo 2')).toHaveAttribute('src', captureUrls[1]);
-    expect(screen.getByAltText('Captured photo 3')).toHaveAttribute('src', captureUrls[2]);
-    expect(screen.getByAltText('Captured photo 1').closest('figure')).toHaveStyle({
-      left: '17.1667%',
-      top: '16.1667%',
-    });
+    expect(screen.getAllByRole('figure')).toHaveLength(6);
+    expect(screen.getByTestId('collage-option-1')).toHaveClass('is-selected');
+    expect(screen.getByTestId('collage-option-2')).not.toHaveClass('is-selected');
+
+    await user.click(screen.getByTestId('collage-option-2'));
+    expect(screen.getByTestId('collage-option-2')).toHaveClass('is-selected');
+    expect(screen.getByTestId('collage-option-1')).not.toHaveClass('is-selected');
+
+    await user.click(screen.getByRole('button', { name: /use these photos/i }));
+    expect(onAccept).toHaveBeenCalledWith(2);
     expect(screen.getAllByRole('button')).toHaveLength(2);
     expect(screen.queryByText(/retake photo 1/i)).not.toBeInTheDocument();
   });
@@ -145,15 +132,15 @@ describe('guest screen components', () => {
 });
 
 describe('FrameEditor', () => {
-  it('saves edited slot geometry as normalized coordinates', async () => {
-    const onSave = vi.fn<(slots: FrameLayout) => void>();
+  it('saves edited slot geometry as normalized coordinates for active collage', async () => {
+    const onSave = vi.fn<(frameId: string, slots: FrameLayout, revision: number) => void>();
     const user = userEvent.setup();
     render(<FrameEditor frame={FRAME} onChooseFrame={() => undefined} onSave={onSave} />);
 
     fireEvent.change(screen.getByLabelText('x percent'), { target: { value: '12.5' } });
     await user.click(screen.getByRole('button', { name: /save configuration/i }));
     expect(onSave).toHaveBeenCalledOnce();
-    const savedSlots = onSave.mock.calls[0]?.[0];
+    const savedSlots = onSave.mock.calls[0]?.[1];
     expect(savedSlots).toBeDefined();
     expect(savedSlots?.[0]?.x).toBeCloseTo(0.125);
   });
@@ -164,27 +151,29 @@ describe('FrameEditor', () => {
     fireEvent.change(screen.getByLabelText('width percent'), { target: { value: '30' } });
     expect(screen.getByLabelText('width percent')).toHaveValue(30);
     await user.click(screen.getByRole('button', { name: /reset slot/i }));
-    expect(screen.getByLabelText('width percent')).toHaveValue(58.2);
+    expect(screen.getByLabelText('width percent')).toHaveValue(53.8);
   });
 
-  it('applies 1-click layout presets across all slots', async () => {
-    const onSave = vi.fn<(slots: FrameLayout) => void>();
+  it('switches between Collage 1 and Collage 2 tabs independently', async () => {
+    const onChooseFrame = vi.fn();
     const user = userEvent.setup();
-    render(<FrameEditor frame={FRAME} onChooseFrame={() => undefined} onSave={onSave} />);
+    render(
+      <FrameEditor
+        frames={[FRAME, FRAME_2]}
+        onChooseFrame={onChooseFrame}
+        onSave={() => undefined}
+      />,
+    );
 
-    await user.click(screen.getByRole('button', { name: /3-Stack/i }));
-    expect(screen.getByLabelText('x percent')).toHaveValue(10);
-    expect(screen.getByLabelText('width percent')).toHaveValue(80);
+    expect(screen.getByTestId('tab-collage-1')).toHaveClass('is-active');
+    expect(screen.getByTestId('tab-collage-2')).not.toHaveClass('is-active');
 
-    await user.click(screen.getByRole('button', { name: /3-Strip/i }));
-    expect(screen.getByLabelText('x percent')).toHaveValue(17.2);
-    expect(screen.getByLabelText('width percent')).toHaveValue(58.2);
+    await user.click(screen.getByTestId('tab-collage-2'));
+    expect(screen.getByTestId('tab-collage-2')).toHaveClass('is-active');
+    expect(screen.getByTestId('tab-collage-1')).not.toHaveClass('is-active');
 
-    await user.click(screen.getByRole('button', { name: /Save configuration/i }));
-    expect(onSave).toHaveBeenCalledOnce();
-    const savedSlots = onSave.mock.calls[0]?.[0];
-    expect(savedSlots).toHaveLength(3);
-    expect(savedSlots?.[0]?.width).toBeCloseTo(0.581667);
+    await user.click(screen.getByRole('button', { name: /replace frame/i }));
+    expect(onChooseFrame).toHaveBeenCalledWith(2);
   });
 });
 
@@ -201,12 +190,19 @@ describe('AdminSettings', () => {
     settings: SETTINGS,
   };
 
-  it('validates Google Forms allow-list before crossing the bridge', async () => {
-    const user = userEvent.setup();
-    render(<AdminSettingsScreen {...props} />);
-    await user.type(screen.getByLabelText('Google Forms URL'), 'https://example.com/form');
-    await user.click(screen.getByRole('button', { name: /save settings/i }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('valid HTTPS Google Forms URL');
+  it('validates LAN port range before saving', async () => {
+    render(
+      <AdminSettingsScreen
+        {...props}
+        settings={{ ...SETTINGS, lan: { ...SETTINGS.lan, enabled: true } }}
+      />,
+    );
+    const portInput = screen.getByLabelText('Port');
+    fireEvent.change(portInput, { target: { value: '80' } });
+    fireEvent.submit(portInput.closest('form')!);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'LAN port must be between 1024 and 65535.',
+    );
     expect(props.onSaveSettings).not.toHaveBeenCalled();
   });
 

@@ -8,23 +8,23 @@
   color-scheme: dark;
 
   /* Urban Loft Core Palette */
-  --color-primary: #A35E47;     /* Warm Terracotta Rust - Primary Action */
-  --color-secondary: #2E2E2E;   /* Deep Charcoal Surface Accent */
-  --color-steel: #9C9A9A;       /* Concrete Cement Gray - Borders & Hairlines */
-  --color-mint: #A35E47;        /* Terracotta Glow Accent */
-  --color-hover: #000000;       /* High-contrast Invert Hover */
-  --color-naval-slate: #1C1C1C; /* Recessed Panel Surface */
-  --color-brass-gold: #A35E47;  /* Terracotta Highlight */
-  --color-maroon: #C62828;      /* Industrial Safety Crimson Alert */
-  --color-olive: #3D7A5A;       /* Patina Sage Green - Verified / Success */
+  --color-primary: #a35e47; /* Warm Terracotta Rust - Primary Action */
+  --color-secondary: #2e2e2e; /* Deep Charcoal Surface Accent */
+  --color-steel: #9c9a9a; /* Concrete Cement Gray - Borders & Hairlines */
+  --color-mint: #a35e47; /* Terracotta Glow Accent */
+  --color-hover: #000000; /* High-contrast Invert Hover */
+  --color-naval-slate: #1c1c1c; /* Recessed Panel Surface */
+  --color-brass-gold: #a35e47; /* Terracotta Highlight */
+  --color-maroon: #c62828; /* Industrial Safety Crimson Alert */
+  --color-olive: #3d7a5a; /* Patina Sage Green - Verified / Success */
 
   /* Structural Inks & Paper Surfaces */
-  --color-ink: #FFFFFF;         /* Crisp White Text / Headings */
-  --color-ink-pure: #FFFFFF;    /* Pure White High Contrast */
-  --color-ink-muted: #9C9A9A;   /* Concrete Gray Muted Subtext */
-  --color-substrate: #464646;   /* Dark Charcoal Slate Canvas Background */
-  --color-surface: #000000;     /* Obsidian Pitch Black Card Substrate */
-  --color-surface-tint: #1C1C1C; /* Recessed Track Containers */
+  --color-ink: #ffffff; /* Crisp White Text / Headings */
+  --color-ink-pure: #ffffff; /* Pure White High Contrast */
+  --color-ink-muted: #9c9a9a; /* Concrete Gray Muted Subtext */
+  --color-substrate: #464646; /* Dark Charcoal Slate Canvas Background */
+  --color-surface: #000000; /* Obsidian Pitch Black Card Substrate */
+  --color-surface-tint: #1c1c1c; /* Recessed Track Containers */
   --color-canvas-white: #000000; /* Obsidian Black Document Substrate */
 
   /* Semantic System Mappings */
@@ -190,7 +190,7 @@ a:focus-visible {
   width: min(1200px, calc(100% - 48px));
   margin: 36px auto;
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
   gap: 36px;
   align-items: start;
 }
@@ -252,10 +252,22 @@ a:focus-visible {
   z-index: 2;
 }
 
-.mat-crosshair--tl { top: 4px; left: 4px; }
-.mat-crosshair--tr { top: 4px; right: 4px; }
-.mat-crosshair--bl { bottom: 4px; left: 4px; }
-.mat-crosshair--br { bottom: 4px; right: 4px; }
+.mat-crosshair--tl {
+  top: 4px;
+  left: 4px;
+}
+.mat-crosshair--tr {
+  top: 4px;
+  right: 4px;
+}
+.mat-crosshair--bl {
+  bottom: 4px;
+  left: 4px;
+}
+.mat-crosshair--br {
+  bottom: 4px;
+  right: 4px;
+}
 
 .stage-caption {
   font-family: var(--font-mono);

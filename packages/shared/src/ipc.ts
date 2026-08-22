@@ -50,7 +50,11 @@ export const IpcContracts = {
     response: rpcResultSchema(BoothSnapshotSchema),
   },
   'booth:accept-photos': {
-    request: EmptyRequestSchema,
+    request: z
+      .object({
+        selectedOption: z.union([z.literal(1), z.literal(2)]).default(1),
+      })
+      .default({ selectedOption: 1 }),
     response: rpcResultSchema(BoothSnapshotSchema),
   },
   'booth:retry-upload': {
@@ -128,7 +132,11 @@ export const IpcContracts = {
     response: rpcResultSchema(AdminSettingsSchema),
   },
   'admin:choose-frame': {
-    request: EmptyRequestSchema,
+    request: z
+      .object({
+        optionIndex: z.union([z.literal(1), z.literal(2)]).default(1),
+      })
+      .default({ optionIndex: 1 }),
     response: rpcResultSchema(FrameSummarySchema.nullable()),
   },
   'admin:save-frame-layout': {
@@ -204,12 +212,15 @@ export type GraceBoothBridge = {
     getSnapshot(): Promise<RpcResult<BoothSnapshot>>;
     start(): Promise<RpcResult<BoothSnapshot>>;
     retakeAll(): Promise<RpcResult<BoothSnapshot>>;
-    acceptPhotos(): Promise<RpcResult<BoothSnapshot>>;
+    acceptPhotos(input?: { selectedOption?: 1 | 2 }): Promise<RpcResult<BoothSnapshot>>;
     retryUpload(): Promise<RpcResult<BoothSnapshot>>;
     finishOffline(): Promise<RpcResult<BoothSnapshot>>;
     done(): Promise<RpcResult<BoothSnapshot>>;
     getCameras(): Promise<RpcResult<CameraConfig>>;
-    setCamera(input: { adapter: CameraAdapterKind; deviceId?: string | null }): Promise<RpcResult<CameraConfig>>;
+    setCamera(input: {
+      adapter: CameraAdapterKind;
+      deviceId?: string | null;
+    }): Promise<RpcResult<CameraConfig>>;
     submitCameraFrame(captureId: string, jpegBase64: string): Promise<RpcResult<EmptyResponse>>;
     subscribe(listener: (snapshot: BoothSnapshot) => void): () => void;
     onCameraFrameRequest(listener: (request: CameraFrameRequestEvent) => void): () => void;
@@ -228,7 +239,7 @@ export type GraceBoothBridge = {
       lanPort: number;
       expectedRevision: number;
     }): Promise<RpcResult<AdminSettings>>;
-    chooseFrame(): Promise<RpcResult<FrameSummary | null>>;
+    chooseFrame(input?: { optionIndex?: 1 | 2 }): Promise<RpcResult<FrameSummary | null>>;
     saveFrameLayout(input: {
       frameId: string;
       slots: FrameLayout;

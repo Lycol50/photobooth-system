@@ -481,7 +481,7 @@ export function App() {
   }, [visualSeed]);
 
   const saveFrame = useCallback(
-    async (slots: FrameLayout) => {
+    async (frameId: string, slots: FrameLayout, expectedRevision: number) => {
       if (!adminSettings || visualSeed) {
         return;
       }
@@ -493,16 +493,13 @@ export function App() {
       setAdminError(null);
       setAdminStatus(null);
       try {
-        const frame = adminSettings.activeFrame;
         const result = await bridge.admin.saveFrameLayout({
-          frameId: frame.id,
+          frameId,
           slots,
-          expectedRevision: frame.revision,
+          expectedRevision,
         });
         if (result.ok) {
-          setAdminSettings((current) =>
-            current ? { ...current, activeFrame: result.data } : current,
-          );
+          await refreshAdminData();
           setAdminStatus('Frame layout saved.');
         } else {
           setAdminError(adminErrorMessage(result));
@@ -511,37 +508,40 @@ export function App() {
         setAdminBusy(false);
       }
     },
-    [adminSettings, visualSeed],
+    [adminSettings, refreshAdminData, visualSeed],
   );
 
-  const chooseFrame = useCallback(async () => {
-    if (visualSeed) {
-      return;
-    }
-    const bridge = getBridge();
-    if (!bridge) {
-      return;
-    }
-    setAdminBusy(true);
-    setAdminError(null);
-    setAdminStatus(null);
-    try {
-      const result = await bridge.admin.chooseFrame();
-      if (result.ok) {
-        const selectedFrame = result.data;
-        if (selectedFrame) {
-          setAdminSettings((current) =>
-            current ? { ...current, activeFrame: selectedFrame } : current,
-          );
-          setAdminStatus('Transparent frame selected. Review the slots, then save.');
-        }
-      } else {
-        setAdminError(adminErrorMessage(result));
+  const chooseFrame = useCallback(
+    async (optionIndex: 1 | 2 = 1) => {
+      if (visualSeed) {
+        return;
       }
-    } finally {
-      setAdminBusy(false);
-    }
-  }, [visualSeed]);
+      const bridge = getBridge();
+      if (!bridge) {
+        return;
+      }
+      setAdminBusy(true);
+      setAdminError(null);
+      setAdminStatus(null);
+      try {
+        const result = await bridge.admin.chooseFrame({ optionIndex });
+        if (result.ok) {
+          const selectedFrame = result.data;
+          if (selectedFrame) {
+            await refreshAdminData();
+            setAdminStatus(
+              `Transparent frame for Collage ${optionIndex} selected. Review the slots, then save.`,
+            );
+          }
+        } else {
+          setAdminError(adminErrorMessage(result));
+        }
+      } finally {
+        setAdminBusy(false);
+      }
+    },
+    [refreshAdminData, visualSeed],
+  );
 
   const saveSettings = useCallback(
     async (input: Parameters<GraceBoothBridge['admin']['saveSettings']>[0]) => {
@@ -740,7 +740,10 @@ export function App() {
           canRetake={snapshot.controls.canRetakeAll}
           captureUrls={snapshot.media.captureUrls}
           frame={snapshot.media.frame}
-          onAccept={() => void runGuestCommand((bridge) => bridge.booth.acceptPhotos())}
+          frames={snapshot.media.frames}
+          onAccept={(selectedOption) =>
+            void runGuestCommand((bridge) => bridge.booth.acceptPhotos({ selectedOption }))
+          }
           onRetake={() => void runGuestCommand((bridge) => bridge.booth.retakeAll())}
         />
       );
@@ -815,12 +818,15 @@ export function App() {
         <AdminShell onExit={() => void exitAdmin()} onViewChange={setAdminView} view={adminView}>
           {adminView === 'frame' ? (
             <FrameEditor
-              key={`${adminSettings.activeFrame.id}:${adminSettings.activeFrame.revision}`}
+              key={`${adminSettings.activeFrame.id}:${adminSettings.activeFrame.revision}:${adminSettings.frames?.[1]?.id ?? ''}:${adminSettings.frames?.[1]?.revision ?? ''}`}
               busy={adminBusy}
               error={adminError}
               frame={adminSettings.activeFrame}
-              onChooseFrame={() => void chooseFrame()}
-              onSave={(slots) => void saveFrame(slots)}
+              frames={adminSettings.frames}
+              onChooseFrame={(optionIndex) => void chooseFrame(optionIndex)}
+              onSave={(frameId, slots, expectedRevision) =>
+                void saveFrame(frameId, slots, expectedRevision)
+              }
               status={adminStatus}
             />
           ) : (

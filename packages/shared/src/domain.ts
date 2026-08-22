@@ -141,6 +141,7 @@ export const AdminSettingsSchema = z
     cloudRetentionDays: z.literal(30),
     lan: LanSettingsSchema,
     activeFrame: FrameSummarySchema,
+    frames: z.tuple([FrameSummarySchema, FrameSummarySchema]).optional(),
     cameraAdapter: z.enum(['mock', 'sony', 'webcam', 'internal_webcam']).default('webcam'),
     cameraDeviceId: z.string().nullable().default(null),
     supabaseUrl: z.url().max(500).nullable().default(null),
@@ -176,6 +177,7 @@ export const BoothMediaSchema = z
     captureUrls: z.array(z.string().min(1)).max(3),
     collageUrl: z.string().min(1).nullable(),
     frame: FrameSummarySchema.nullable().optional(),
+    frames: z.tuple([FrameSummarySchema, FrameSummarySchema]).optional(),
     qrImageUrl: z.string().min(1).nullable(),
   })
   .strict();

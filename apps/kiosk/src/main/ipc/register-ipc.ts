@@ -80,7 +80,9 @@ export function registerIpcHandlers(dependencies: IpcDependencies): () => void {
     return dependencies.workflow.start();
   });
   register('booth:retake-all', () => dependencies.workflow.retakeAll());
-  register('booth:accept-photos', () => dependencies.workflow.acceptPhotos());
+  register('booth:accept-photos', (_event, input) =>
+    dependencies.workflow.acceptPhotos(input?.selectedOption ?? 1),
+  );
   register('booth:retry-upload', () => dependencies.workflow.retryUpload());
   register('booth:finish-offline', () => dependencies.workflow.finishOffline());
   register('booth:done', () => dependencies.workflow.done());
@@ -158,7 +160,7 @@ export function registerIpcHandlers(dependencies: IpcDependencies): () => void {
     dependencies.onNetworkSettingsChanged();
     return adminSettings(dependencies.repository, dependencies.frameService);
   });
-  register('admin:choose-frame', async (event) => {
+  register('admin:choose-frame', async (event, input) => {
     requireAdmin(event);
     const owner = BrowserWindow.fromWebContents(event.sender);
     const dialogOptions: OpenDialogOptions = {
@@ -171,7 +173,9 @@ export function registerIpcHandlers(dependencies: IpcDependencies): () => void {
       : await dialog.showOpenDialog(dialogOptions);
     const selected = result.filePaths[0];
     if (result.canceled || !selected) return null;
-    const frame = await dependencies.frameService.importFrame(
+    const optionIndex = input?.optionIndex ?? 1;
+    const frame = await dependencies.frameService.importFrameForOption(
+      optionIndex,
       basename(selected, '.png'),
       await readFile(selected),
     );
@@ -263,7 +267,7 @@ async function adminSettings(
   frames: FrameService,
 ): Promise<AdminSettings> {
   const settings = repository.getSettings();
-  const frame = repository.getActiveFrame() ?? (await frames.ensureDefaultFrame());
+  const { option1, option2 } = await frames.ensureDefaultFrames();
   return {
     googleFormsUrl: settings.googleFormsUrl,
     localRetentionDays: 60,
@@ -275,7 +279,8 @@ async function adminSettings(
       tlsConfigured: settings.lanTlsSecretRef !== null,
       certificateFingerprint: settings.lanCertificateFingerprint,
     },
-    activeFrame: frames.toSummary(frame),
+    activeFrame: frames.toSummary(option1),
+    frames: [frames.toSummary(option1), frames.toSummary(option2)],
     cameraAdapter: settings.cameraAdapter,
     cameraDeviceId: settings.cameraDeviceId,
     supabaseUrl: settings.supabaseUrl,

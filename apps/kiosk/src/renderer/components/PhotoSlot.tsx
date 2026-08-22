@@ -23,7 +23,7 @@ export function PhotoSlot({
   src,
   style,
 }: PhotoSlotProps) {
-  const photoSrc = src || mockPhotoFor(index);
+  const photoSrc = src ?? mockPhotoFor(index);
 
   return (
     <figure

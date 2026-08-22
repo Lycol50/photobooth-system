@@ -22,25 +22,36 @@ describe('public photo page', () => {
     vi.mocked(api.resolvePhoto).mockResolvedValue({
       status: 'ready',
       expiresAt: '2026-09-16T10:00:00.000Z',
-      googleFormsUrl: 'https://docs.google.com/forms/d/e/example/viewform',
+      googleFormsUrl: null,
     });
     vi.mocked(api.fetchPhotoImage).mockResolvedValue(jpeg);
     vi.mocked(api.fetchPhotoDownload).mockResolvedValue(jpeg);
   });
 
-  it('shows loading, the protected image, and the optional registration link', async () => {
-    render(<App />);
+  it('shows loading, the action panel before the photostrip in DOM, and the Join a Ministry link', async () => {
+    const { container } = render(<App />);
     expect(screen.getByText('Your moment is almost here.')).toBeInTheDocument();
-    expect(
-      await screen.findByRole('img', { name: /finished event collage/i }),
-    ).toHaveAttribute('src', expect.stringContaining('blob:'));
-    expect(screen.getByRole('link', { name: 'Ministry registration' })).toHaveAttribute(
-      'href',
-      'https://docs.google.com/forms/d/e/example/viewform',
+    expect(await screen.findByRole('img', { name: /finished event collage/i })).toHaveAttribute(
+      'src',
+      expect.stringContaining('blob:'),
     );
-    expect(
-      screen.getByText(/registration is optional and opens an external google form/i),
-    ).toBeVisible();
+
+    const detailPanel = container.querySelector('.detail-panel');
+    const photoStage = container.querySelector('.photo-stage');
+    expect(detailPanel).toBeInTheDocument();
+    expect(photoStage).toBeInTheDocument();
+    // detailPanel is rendered before photoStage in DOM
+    expect(detailPanel?.compareDocumentPosition(photoStage!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+
+    const ministryLink = screen.getByRole('link', { name: /join a ministry/i });
+    expect(ministryLink).toHaveAttribute(
+      'href',
+      'https://volunteer-management.ccf.org.ph/recruitment/form',
+    );
+    expect(ministryLink).toHaveAttribute('target', '_blank');
+    expect(ministryLink).toHaveAttribute('rel', 'noopener noreferrer external');
   });
 
   it('downloads through the POST client without placing the token in the DOM', async () => {

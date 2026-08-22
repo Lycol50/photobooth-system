@@ -124,7 +124,7 @@ async function startApplication(): Promise<void> {
         : { failOnShotNumbers: new Set([config.e2e.captureFailShot]) }),
     },
     frameBroker: cameraFrames,
-    initialAdapter: initialCameraAdapter,
+    initialAdapter: config.e2e.enabled ? config.cameraAdapter : initialCameraAdapter,
     initialDeviceId: initialCameraDeviceId,
     onAdapterChanged: (adapter) => {
       workflowInstance?.setCameraPreviewEnabled(
@@ -136,7 +136,10 @@ async function startApplication(): Promise<void> {
   const frameService = new FrameService(
     repository,
     vault,
-    join(resourceRoot, 'frames', 'default-frame.png'),
+    {
+      option1: join(resourceRoot, 'frames', 'mat-frame.png'),
+      option2: join(resourceRoot, 'frames', 'anniv-frame.png'),
+    },
     imageProcessor,
   );
   const cloudSessions = new CloudSessionStore(secrets);

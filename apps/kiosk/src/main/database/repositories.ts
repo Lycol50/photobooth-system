@@ -1,4 +1,9 @@
-import type { CameraAdapterKind, FrameLayout, SessionState, UploadJobState } from '@grace-booth/shared';
+import type {
+  CameraAdapterKind,
+  FrameLayout,
+  SessionState,
+  UploadJobState,
+} from '@grace-booth/shared';
 import { FrameLayoutSchema, SessionStateSchema, UploadJobStateSchema } from '@grace-booth/shared';
 
 import { AppError } from '../errors.js';
@@ -14,6 +19,7 @@ type RawSettingsRow = {
   scrypt_p: number;
   scrypt_key_length: number;
   active_frame_id: string | null;
+  collage_2_frame_id: string | null;
   google_forms_url: string | null;
   local_retention_days: number;
   cloud_retention_days: number;
@@ -40,6 +46,7 @@ export type LocalSettings = {
   scryptP: number;
   scryptKeyLength: number;
   activeFrameId: string | null;
+  collage2FrameId: string | null;
   googleFormsUrl: string | null;
   localRetentionDays: 60;
   cloudRetentionDays: 30;
@@ -93,6 +100,8 @@ export type StoredSession = {
   state: SessionState;
   captureRound: number;
   captureCount: number;
+  selectedOption: number;
+  selectedFrameId: string | null;
   collageAssetId: string | null;
   cloudPhotoSessionId: string | null;
   publicSecretRef: string | null;
@@ -141,7 +150,7 @@ export type NewAsset = {
 
 const SETTINGS_SELECT = `
   SELECT passcode_hash, passcode_salt, scrypt_version, scrypt_n, scrypt_r, scrypt_p, scrypt_key_length,
-    active_frame_id, google_forms_url, local_retention_days, cloud_retention_days,
+    active_frame_id, collage_2_frame_id, google_forms_url, local_retention_days, cloud_retention_days,
     lan_enabled, lan_bind_host, lan_port, lan_tls_secret_ref,
     lan_certificate_fingerprint, camera_adapter, camera_device_id,
     revision, created_at, updated_at
@@ -149,9 +158,10 @@ const SETTINGS_SELECT = `
 `;
 
 const SESSION_SELECT = `
-  SELECT id, state, capture_round, capture_count, collage_asset_id, cloud_photo_session_id,
-    public_secret_ref, ready_at, expires_at, last_error_code, last_error_message,
-    created_at, updated_at, completed_at, retention_anchor_at, cleanup_state, cleanup_started_at
+  SELECT id, state, capture_round, capture_count, selected_option, selected_frame_id,
+    collage_asset_id, cloud_photo_session_id, public_secret_ref, ready_at, expires_at,
+    last_error_code, last_error_message, created_at, updated_at, completed_at,
+    retention_anchor_at, cleanup_state, cleanup_started_at
   FROM sessions
 `;
 
@@ -277,8 +287,9 @@ export class LocalRepository {
     return this.getSettings();
   }
 
-  addFrame(frame: Omit<StoredFrame, 'slots'>, slots: FrameLayout): void {
+  addFrame(frame: Omit<StoredFrame, 'slots'>, slots: FrameLayout, optionIndex: 1 | 2 = 1): void {
     const validatedSlots = FrameLayoutSchema.parse(slots);
+    const targetColumn = optionIndex === 2 ? 'collage_2_frame_id' : 'active_frame_id';
     this.database.raw.transaction(() => {
       this.database.raw
         .prepare(
@@ -301,12 +312,23 @@ export class LocalRepository {
       this.insertFrameSlots(frame.id, validatedSlots);
       this.database.raw
         .prepare(
-          `UPDATE settings SET active_frame_id = ?, revision = revision + 1, updated_at = ?
+          `UPDATE settings SET ${targetColumn} = ?, revision = revision + 1, updated_at = ?
           WHERE id = 1`,
         )
         .run(frame.id, frame.updatedAt);
       this.recordAudit('frame_change', 'success', 'frame_added', frame.updatedAt);
     })();
+  }
+
+  setCollageFrameId(optionIndex: 1 | 2, frameId: string, now = Date.now()): LocalSettings {
+    const targetColumn = optionIndex === 2 ? 'collage_2_frame_id' : 'active_frame_id';
+    this.database.raw
+      .prepare(
+        `UPDATE settings SET ${targetColumn} = ?, revision = revision + 1, updated_at = ? WHERE id = 1`,
+      )
+      .run(frameId, now);
+    this.recordAudit('frame_change', 'success', 'frame_assigned', now);
+    return this.getSettings();
   }
 
   getFrame(frameId: string): StoredFrame | null {
@@ -357,6 +379,13 @@ export class LocalRepository {
   getActiveFrame(): StoredFrame | null {
     const { activeFrameId } = this.getSettings();
     return activeFrameId ? this.getFrame(activeFrameId) : null;
+  }
+
+  getFrameOptions(): [StoredFrame | null, StoredFrame | null] {
+    const { activeFrameId, collage2FrameId } = this.getSettings();
+    const frame1 = activeFrameId ? this.getFrame(activeFrameId) : null;
+    const frame2 = collage2FrameId ? this.getFrame(collage2FrameId) : null;
+    return [frame1, frame2];
   }
 
   updateFrameLayout(
@@ -432,6 +461,8 @@ export class LocalRepository {
     toState: SessionState,
     patch: {
       captureCount?: number;
+      selectedOption?: number;
+      selectedFrameId?: string | null;
       collageAssetId?: string | null;
       cloudPhotoSessionId?: string | null;
       publicSecretRef?: string | null;
@@ -450,6 +481,8 @@ export class LocalRepository {
     const values: unknown[] = [toState, now];
     const columns: Record<keyof typeof patch, string> = {
       captureCount: 'capture_count',
+      selectedOption: 'selected_option',
+      selectedFrameId: 'selected_frame_id',
       collageAssetId: 'collage_asset_id',
       cloudPhotoSessionId: 'cloud_photo_session_id',
       publicSecretRef: 'public_secret_ref',
@@ -524,7 +557,7 @@ export class LocalRepository {
       const result = this.database.raw
         .prepare(
           `UPDATE sessions SET state = 'countdown', capture_round = capture_round + 1,
-            capture_count = 0,
+            capture_count = 0, selected_option = 1, selected_frame_id = NULL,
             last_error_code = NULL, last_error_message = NULL, updated_at = ?
           WHERE id = ? AND state IN ('review', 'camera_error', 'interrupted')`,
         )
@@ -1183,6 +1216,7 @@ function mapSettings(row: RawSettingsRow): LocalSettings {
     scryptP: row.scrypt_p,
     scryptKeyLength: row.scrypt_key_length,
     activeFrameId: row.active_frame_id,
+    collage2FrameId: row.collage_2_frame_id,
     googleFormsUrl: row.google_forms_url,
     localRetentionDays: 60,
     cloudRetentionDays: 30,
@@ -1207,6 +1241,8 @@ function mapSession(row: Record<string, unknown>): StoredSession {
     state: SessionStateSchema.parse(row.state),
     captureRound: Number(row.capture_round),
     captureCount: Number(row.capture_count),
+    selectedOption: Number(row.selected_option ?? 1),
+    selectedFrameId: nullableString(row.selected_frame_id),
     collageAssetId: nullableString(row.collage_asset_id),
     cloudPhotoSessionId: nullableString(row.cloud_photo_session_id),
     publicSecretRef: nullableString(row.public_secret_ref),

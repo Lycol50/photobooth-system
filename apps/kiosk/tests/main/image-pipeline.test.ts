@@ -20,7 +20,7 @@ beforeAll(async () => {
   fixturePhotos = (await Promise.all(
     [1, 2, 3].map((index) => readFile(`${root}mock/photo-${index}.jpg`)),
   )) as [Buffer, Buffer, Buffer];
-  fixtureFrame = await readFile(`${root}frames/default-frame.png`);
+  fixtureFrame = await readFile(`${root}frames/mat-frame.png`);
 });
 
 describe('deterministic Sharp collage pipeline', () => {
@@ -179,11 +179,7 @@ describe('deterministic Sharp collage pipeline', () => {
     const pipeline = new ImagePipeline(new CenterCropStrategy());
     await expect(
       pipeline.process({
-        captures: [Buffer.from('bad'), ...fixturePhotos.slice(1)] as [
-          Buffer,
-          Buffer,
-          Buffer,
-        ],
+        captures: [Buffer.from('bad'), ...fixturePhotos.slice(1)] as [Buffer, Buffer, Buffer],
         framePng: fixtureFrame,
         slots: DEFAULT_FRAME_SLOTS,
       }),
